@@ -1,0 +1,7 @@
+GaugeWright Blind Account Directory
+Copyright 2026 GaugeWright LLC
+
+The blind account directory service (ACCT-2, ADR 0054): readable signed
+routing records plus opaque sealed account blobs. Kept open source
+(Apache-2.0) because it is trust-adjacent — anyone can audit that it is
+blind by construction.

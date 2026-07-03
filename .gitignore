@@ -1,0 +1,5 @@
+# Rust build output (also holds the mkdocs site build, target/directory-docs-site)
+/target/
+
+# Claude Code local agent config / state
+.claude/

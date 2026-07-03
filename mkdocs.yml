@@ -1,0 +1,20 @@
+# Standalone docs build for the blind directory service (future
+# gaugewright-directory repo, ADR 0069). The public docs site composes this
+# build under /directory/ — see gaugewright-site/docs-site/build.sh.
+site_name: GaugeWright Blind Directory
+site_description: The free, auditable account routing layer — readable signed routing records plus sealed blobs the service cannot open.
+site_url: https://docs.gaugewright.com/directory/
+copyright: © 2026 GaugeWright
+
+docs_dir: docs
+site_dir: target/directory-docs-site
+
+theme:
+  name: material
+  palette:
+    scheme: slate
+    primary: black
+    accent: light blue
+
+nav:
+  - Overview: index.md

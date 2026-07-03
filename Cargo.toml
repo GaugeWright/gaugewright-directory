@@ -1,0 +1,40 @@
+# gaugewright-directory — the blind account directory service (ACCT-2, ADR 0054).
+# The free managed exception (pricing-and-editions): publicly auditable,
+# continuously deployed, blind by construction. Extracted from the un-tie
+# monorepo (ADR 0069, SPLIT-6) into this standalone repo.
+#
+# Platform consumption (ADR 0069, SPLIT-7 transitional): the open platform repo
+# (gaugewright-workbench) is vendored as the `platform/` git submodule, pinned
+# to a known-good commit, and this crate takes `path` dependencies into it
+# until the platform crates are published. Initialize it with
+# `git submodule update --init` before building.
+[package]
+name = "gaugewright-directory"
+edition = "2021"
+version = "0.0.0"
+license = "Apache-2.0"
+description = "gaugewright blind account directory: readable signed routing records + opaque sealed account blobs."
+
+[dependencies]
+gaugewright-core = { path = "platform/crates/core" }
+gaugewright-store = { path = "platform/crates/store" }
+gaugewright-app = { path = "platform/crates/app", default-features = false }
+axum = "0.7"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3"
+ureq = { version = "2", default-features = false, features = ["tls", "json"] }
+
+[[bin]]
+name = "gaugewright-directory"
+path = "src/main.rs"
+
+# Standalone package: stop cargo from walking up looking for a parent
+# workspace. The platform submodule is its own (nested) workspace, so it must
+# be excluded here.
+[workspace]
+exclude = ["platform"]
