@@ -472,6 +472,7 @@ dependencies = [
  "futures",
  "gaugewright-boundary",
  "gaugewright-core",
+ "gaugewright-harness",
  "gaugewright-pi-bridge",
  "gaugewright-store",
  "gaugewright-workspace",
@@ -529,13 +530,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "gaugewright-harness"
+version = "0.0.0"
+dependencies = [
+ "serde",
+ "tracing",
+]
+
+[[package]]
 name = "gaugewright-pi-bridge"
 version = "0.0.0"
 dependencies = [
  "gaugewright-core",
+ "gaugewright-harness",
  "serde",
  "serde_json",
- "tracing",
 ]
 
 [[package]]
