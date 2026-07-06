@@ -9,7 +9,7 @@ jobs:
   rust:
     runs-on: ubuntu-latest
     steps:
-      # The platform/ submodule points at gaugewright-workbench, which is
+      # The platform/ submodule points at gaugebench, which is
       # currently PRIVATE: the default GITHUB_TOKEN cannot read it, so checkout
       # needs a PAT secret (e.g. GH_SUBMODULE_TOKEN with repo read scope) once
       # Actions billing is restored. Configure it as

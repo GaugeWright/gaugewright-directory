@@ -21,13 +21,13 @@ fail-closed (`PUT /directory/:root` verifies against the record's *own*
 
 ## Building
 
-The open platform repo ([gaugewright-workbench](https://github.com/jamesjscully/gaugewright-workbench))
+The open platform repo ([gaugebench](https://github.com/jamesjscully/gaugebench))
 is consumed as the `platform/` git submodule, pinned to a known-good commit;
 this crate takes `path` dependencies into it (`platform/crates/*`) — the
 ADR 0069 SPLIT-7 transitional mechanism until the platform crates are
 published.
 
-> **Note:** `gaugewright-workbench` is currently a **private** repository
+> **Note:** `gaugebench` is currently a **private** repository
 > while this repo is public. The submodule pointer is public and harmless, but
 > initializing it — and therefore building — requires access to the platform
 > repo until it goes public.
@@ -48,7 +48,7 @@ Docs build: `mkdocs build --strict` (output under `target/directory-docs-site`).
 
 ## Sibling repos
 
-- [gaugewright-workbench](https://github.com/jamesjscully/gaugewright-workbench)
+- [gaugebench](https://github.com/jamesjscully/gaugebench)
   — the open platform (workbench, control plane, crates this service builds on).
 - `gaugewright-cloud` — the private managed-services band (hosted control
   plane, settlement, embed host, attestation/KMS).
