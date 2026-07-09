@@ -4,7 +4,7 @@
 # monorepo (ADR 0069, SPLIT-6) into this standalone repo.
 #
 # Platform consumption (ADR 0069, SPLIT-7 transitional): the open platform repo
-# (gaugebench) is vendored as the `platform/` git submodule, pinned
+# (gaugedesk) is vendored as the `platform/` git submodule, pinned
 # to a known-good commit, and this crate takes `path` dependencies into it
 # until the platform crates are published. Initialize it with
 # `git submodule update --init` before building.
