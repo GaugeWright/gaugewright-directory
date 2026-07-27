@@ -38,3 +38,9 @@ path = "src/main.rs"
 # be excluded here.
 [workspace]
 exclude = ["platform"]
+
+# Dependencies are built without debug info. They dominate target/debug/deps,
+# and debug info measured ~78% of binary size (whipplescript, 2026-07-25).
+# Local crates keep full debuggability: panics and the debugger still work here.
+[profile.dev.package."*"]
+debug = false
