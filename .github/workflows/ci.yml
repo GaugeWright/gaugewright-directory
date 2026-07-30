@@ -18,4 +18,8 @@ jobs:
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/check-product-contracts.mjs --enforce-evidence
       - run: cargo test

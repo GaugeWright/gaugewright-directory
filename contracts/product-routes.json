@@ -1,0 +1,56 @@
+{
+  "$schema": "./product-route.schema.json",
+  "schemaVersion": 1,
+  "owner": "gaugewright-directory",
+  "contracts": [
+    {
+      "id": "directory.entry.read",
+      "jurisdiction": "public-account-root",
+      "transport": "http-json",
+      "method": "GET",
+      "path": "/directory/:root",
+      "producer": "gaugewright-directory",
+      "consumer": "GaugeDesk directory_sync::fetch",
+      "authentication": "public-read",
+      "scope": "account-root",
+      "capability": null,
+      "requestSchema": "path:gaugewright_core/ids/PublicKey",
+      "responseSchema": "rust:gaugewright_directory/DirectoryEntry",
+      "sideEffect": "none",
+      "risk": "important",
+      "compatibility": { "contractVersion": 1, "minimumConsumer": 1, "maximumConsumer": null },
+      "evidence": {
+        "contract": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "authority": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "journey": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "deployed": ["tests/directory_live.rs#signed_publish_and_public_fetch_against_the_live_directory"],
+        "property": ["tests/directory_wiring.rs#generated_signed_records_round_trip_and_forgery_never_mutates"]
+      }
+    },
+    {
+      "id": "directory.entry.publish",
+      "jurisdiction": "account-root-authority",
+      "transport": "http-json",
+      "method": "PUT",
+      "path": "/directory/:root",
+      "producer": "gaugewright-directory",
+      "consumer": "GaugeDesk directory_sync::publish",
+      "authentication": "root-signature",
+      "scope": "account-root",
+      "capability": "publish-own-directory-entry",
+      "requestSchema": "rust:gaugewright_directory/SignedDirectoryPut",
+      "responseSchema": "http:204|400|401|422",
+      "sideEffect": "mutation",
+      "risk": "critical",
+      "compatibility": { "contractVersion": 1, "minimumConsumer": 1, "maximumConsumer": null },
+      "evidence": {
+        "contract": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "authority": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "journey": ["tests/directory_wiring.rs#production_client_round_trip"],
+        "deployed": ["tests/directory_live.rs#signed_publish_and_public_fetch_against_the_live_directory"],
+        "property": ["tests/directory_wiring.rs#generated_signed_records_round_trip_and_forgery_never_mutates"]
+      }
+    }
+  ],
+  "exceptions": []
+}
