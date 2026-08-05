@@ -27,16 +27,14 @@ this crate takes `path` dependencies into it (`platform/crates/*`) — the
 ADR 0069 SPLIT-7 transitional mechanism until the platform crates are
 published.
 
-> **Note:** `gaugedesk` is currently a **private** repository
-> while this repo is public. The submodule pointer is public and harmless, but
-> initializing it — and therefore building — requires access to the platform
-> repo until it goes public.
-
 ```sh
 git submodule update --init
-cargo test                       # unit + integration (live tests are #[ignore])
+scripts/check.sh                 # the complete green bar; CI runs this same script
 cargo run                        # GAUGEWRIGHT_DIRECTORY_ADDR / _DB / _READY env
 ```
+
+Rust and Node versions are pinned in `rust-toolchain.toml` and `.node-version`.
+[AGENTS.md](AGENTS.md) is the working guide for this repository.
 
 Live verification against a deployed instance:
 

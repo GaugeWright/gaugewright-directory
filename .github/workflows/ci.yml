@@ -1,4 +1,6 @@
 # Minimal CI for the blind account directory (ADR 0069, SPLIT-6).
+# The gate runs the repository's own green bar so a local pass and a gate pass
+# cannot mean different things. Add checks to scripts/check.sh, not to this file.
 name: ci
 on:
   push:
@@ -6,20 +8,17 @@ on:
   pull_request:
 
 jobs:
-  rust:
-    runs-on: ubuntu-latest
+  green-bar:
+    runs-on: ubuntu-22.04
     steps:
-      # The platform/ submodule points at gaugedesk, which is
-      # currently PRIVATE: the default GITHUB_TOKEN cannot read it, so checkout
-      # needs a PAT secret (e.g. GH_SUBMODULE_TOKEN with repo read scope) once
-      # Actions billing is restored. Configure it as
-      # `token: ${{ secrets.GH_SUBMODULE_TOKEN }}`.
+      # platform/ points at the public GaugeDesk mirror, so the default token
+      # reads it over HTTPS without a PAT secret.
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: dtolnay/rust-toolchain@stable
+      # rustup materializes the toolchain named in rust-toolchain.toml.
+      - run: rustup show active-toolchain || rustup toolchain install
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
-      - run: node scripts/check-product-contracts.mjs --enforce-evidence
-      - run: cargo test
+          node-version-file: .node-version
+      - run: scripts/check.sh

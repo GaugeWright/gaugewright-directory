@@ -15,6 +15,10 @@
     "exceptions": {
       "type": "array",
       "items": { "$ref": "#/$defs/exception" }
+    },
+    "nonProduct": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonProductOperation" }
     }
   },
   "$defs": {
@@ -55,7 +59,7 @@
         "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
         "jurisdiction": { "type": "string", "minLength": 1 },
         "transport": {
-          "enum": ["http-json", "http-static", "sse", "websocket", "native-handoff", "internal-callback"]
+          "enum": ["http-json", "http-redirect", "http-static", "sse", "websocket", "native-handoff", "internal-callback"]
         },
         "method": {
           "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT"]
@@ -88,12 +92,36 @@
     "exception": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["path", "owner", "reason", "expires"],
+      "required": ["method", "path", "owner", "reason", "expires"],
       "properties": {
+        "method": {
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT"]
+        },
         "path": { "type": "string", "pattern": "^/" },
         "owner": { "type": "string", "minLength": 1 },
         "reason": { "type": "string", "minLength": 1 },
         "expires": { "type": "string", "format": "date" }
+      }
+    },
+    "nonProductOperation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "method", "path", "owner", "status", "guard", "reason", "evidence"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$" },
+        "method": {
+          "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS", "CONNECT"]
+        },
+        "path": { "type": "string", "pattern": "^/" },
+        "owner": { "type": "string", "minLength": 1 },
+        "status": { "const": "test-only" },
+        "guard": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
       }
     }
   }
