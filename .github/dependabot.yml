@@ -1,0 +1,34 @@
+# Dependabot — automated dependency-update proposals.
+#
+# Toolchains are pinned in-repo (DEV-6); this pins the dependency graph built
+# with them. Security advisories raise a pull request immediately; routine
+# version updates are grouped weekly so a month of drift arrives as a few
+# reviewable changes rather than a queue nobody triages.
+#
+# Every proposal must pass `scripts/check.sh` through the configured gate
+# before it merges.
+version: 2
+updates:
+  # `platform/` is a git submodule consumed by path dependency and is pinned
+  # deliberately, not by Dependabot.
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      cargo-routine:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-routine:
+        update-types: ["minor", "patch"]
