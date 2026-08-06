@@ -1,0 +1,36 @@
+name: Export the gaugewright-directory contract manifest
+description: >
+  Copy this repository's declared product-route contracts into a sibling
+  workflow workspace, so the cross-repository aggregation can read them at a
+  pinned revision without cloning the whole repository.
+
+inputs:
+  destination:
+    description: Workspace-relative destination for the contract snapshot.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Materialize the pinned contract snapshot
+      shell: bash
+      env:
+        CONTRACTS_DESTINATION: ${{ inputs.destination }}
+      run: |
+        set -euo pipefail
+        source_root="$(cd "$GITHUB_ACTION_PATH/../../.." && pwd)"
+        destination="$(realpath -m "$GITHUB_WORKSPACE/$CONTRACTS_DESTINATION")"
+        case "$destination/" in
+          "$GITHUB_WORKSPACE"/*) ;;
+          *)
+            echo "destination escapes the caller workspace" >&2
+            exit 2
+            ;;
+        esac
+        if [ "$destination" = "$GITHUB_WORKSPACE" ]; then
+          echo "destination may not replace the caller workspace" >&2
+          exit 2
+        fi
+        mkdir -p "$destination"
+        cp -a "$source_root/contracts/." "$destination/"
+        test -f "$destination/product-routes.json"
