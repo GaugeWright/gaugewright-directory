@@ -18,7 +18,7 @@ jobs:
           submodules: recursive
       # rustup materializes the toolchain named in rust-toolchain.toml.
       - run: rustup show active-toolchain || rustup toolchain install
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - run: scripts/check.sh
