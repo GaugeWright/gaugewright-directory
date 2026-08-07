@@ -13,12 +13,12 @@ jobs:
     steps:
       # platform/ points at the public GaugeDesk mirror, so the default token
       # reads it over HTTPS without a PAT secret.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       # rustup materializes the toolchain named in rust-toolchain.toml.
       - run: rustup show active-toolchain || rustup toolchain install
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
       - run: scripts/check.sh
