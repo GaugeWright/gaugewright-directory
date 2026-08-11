@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 const EXPECTED_DIGEST = "dcf9d04d1272573805786790e00a6b2d7e660da57fc885696b2acf95b82e0e7b";
 const BEGIN = "<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE";
@@ -87,6 +88,46 @@ if (!fs.existsSync(aliasPath)) {
       fail(`CLAUDE.md links to ${target} rather than AGENTS.md.`);
     }
   }
+}
+
+// One guide, one place. A nested AGENTS.md or CLAUDE.md would give tools
+// operating in that subtree separate guidance, which is the drift this check
+// exists to prevent, so any guide filename outside the root pair is rejected.
+const GUIDE_NAMES = new Set(["AGENTS.MD", "CLAUDE.MD"]);
+const IGNORED_DIRS = new Set([".git", "node_modules", "target", "dist", "build"]);
+
+const trackedPaths = () => {
+  // git ls-files also keeps submodule contents out of scope, which is what we
+  // want: a consumed repository carries its own guide and is not this one's.
+  const listed = spawnSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" });
+  if (listed.status === 0) {
+    return listed.stdout.split("\0").filter(Boolean);
+  }
+
+  // Not a git checkout (an exported tree, say). Walk it instead.
+  const found = [];
+  const walk = (dir, prefix) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        if (!IGNORED_DIRS.has(entry.name)) walk(path.join(dir, entry.name), relative);
+      } else {
+        found.push(relative);
+      }
+    }
+  };
+  walk(root, "");
+  return found;
+};
+
+for (const relative of trackedPaths()) {
+  const name = path.posix.basename(relative);
+  if (!GUIDE_NAMES.has(name.toUpperCase())) continue;
+  if (relative === "AGENTS.md" || relative === "CLAUDE.md") continue;
+  fail(
+    `${relative} is a second agent guide. This repository carries one guide, AGENTS.md at its root, ` +
+      "aliased only by the root CLAUDE.md symlink; guidance for a subtree belongs in that one file.",
+  );
 }
 
 if (failures.length > 0) {
