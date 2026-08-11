@@ -10,6 +10,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "== agent guide =="
+node scripts/check-agent-guide.mjs
+
 echo "== product contracts =="
 node scripts/check-product-contracts.mjs --enforce-evidence
 
