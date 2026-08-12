@@ -7,6 +7,13 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Superseded branch runs are wasted minutes, so they cancel. Trunk is
+  # different: a cancelled run is recorded as `failure` with no failing
+  # job, and that red says nothing about the change.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   green-bar:
     runs-on: ubuntu-22.04
