@@ -1,0 +1,82 @@
+# The security baseline every active GaugeWright repository carries: secret
+# scanning over the complete history, static analysis, and a dependency audit.
+# This repository had none until 2026-08-12 — it was one of two outside the
+# baseline — so an introduced secret or a published advisory had nothing looking
+# for it here at all.
+#
+# The per-change runs are what make `secrets` and `sast` usable as required
+# checks. The cron stays because it is what catches an advisory published
+# against code that has not changed.
+name: security-baseline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      # `platform/` is the public GaugeDesk mirror. It is scanned in the
+      # repository that owns it, and a finding there is not one this repository
+      # could fix, so it stays out of every job here.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          submodules: false
+          persist-credentials: false
+      # The open-source scanner, not `gitleaks/gitleaks-action`: that wrapper
+      # refuses to run for an organization without a paid `GITLEAKS_LICENSE`.
+      # This is the same invocation the other repositories use, so they all
+      # scan alike and none depends on a licence to answer.
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
+        with:
+          go-version: 1.25.12
+          cache: false
+      - name: install pinned open-source gitleaks scanner
+        run: go install github.com/zricethezav/gitleaks/v8@v8.30.1
+      - name: scan the complete repository history for secrets
+        run: '"$(go env GOPATH)/bin/gitleaks" git --log-opts=--all --redact --no-banner --verbose'
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: false
+          persist-credentials: false
+      - run: python -m pip install --disable-pip-version-check semgrep==1.171.0
+      # `p/r2c-security-audit` carries no Rust rules, so on this repository it
+      # reads the `scripts/*.mjs` gate tooling and the JSON contracts. The Rust
+      # surface is covered by `dependencies` below and by the green bar's
+      # clippy run, not here. Keeping the job means the ruleset applies the day
+      # it grows Rust coverage, and it already answers for the tooling.
+      - run: semgrep --config p/r2c-security-audit --error --metrics=off
+
+  dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          submodules: false
+          persist-credentials: false
+      # rustup materializes the toolchain named in rust-toolchain.toml.
+      - name: Install Rust
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
+        with:
+          tool: cargo-audit
+      # `cargo audit` reads the committed Cargo.lock, so it needs no submodule
+      # and no build.
+      - run: cargo audit
