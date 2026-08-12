@@ -10,6 +10,16 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+echo "== production dependency advisories =="
+# The audit lives here rather than in a workflow step so that the documented
+# local green bar and the enforced gate stay the same command. It reads the
+# committed Cargo.lock, so it needs neither the platform submodule nor a build.
+command -v cargo-audit >/dev/null || {
+    echo "cargo-audit is not installed; run: cargo install cargo-audit" >&2
+    exit 1
+}
+cargo audit
+
 echo "== agent guide =="
 node scripts/check-agent-guide.mjs
 

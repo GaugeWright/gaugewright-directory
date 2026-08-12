@@ -66,20 +66,27 @@ jobs:
       # it grows Rust coverage, and it already answers for the tooling.
       - run: semgrep --config p/r2c-security-audit --error --metrics=off
 
+  # The audit itself lives in scripts/check.sh, so the documented local green bar
+  # and the enforced remote gate are the same command; ci.yml's green-bar job
+  # runs it on every push and pull request. This job exists for the schedule,
+  # which ci.yml does not have: an advisory can land against an unchanged
+  # dependency tree, and nothing else re-runs the audit without a commit.
   dependencies:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
+      # The green bar builds against platform/, so this needs the submodule the
+      # audit alone would not.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          submodules: false
+          submodules: recursive
           persist-credentials: false
-      # rustup materializes the toolchain named in rust-toolchain.toml.
-      - name: Install Rust
-        run: rustup show active-toolchain || rustup toolchain install
+      - run: rustup show active-toolchain || rustup toolchain install
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
       - uses: taiki-e/install-action@7f4eb899022d8fe70b20c4f3de697aa85c309026 # v2.85.11
         with:
           tool: cargo-audit
-      # `cargo audit` reads the committed Cargo.lock, so it needs no submodule
-      # and no build.
-      - run: cargo audit
+      - run: scripts/check.sh
