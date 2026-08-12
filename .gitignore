@@ -3,3 +3,10 @@
 
 # Claude Code local agent config / state
 .claude/
+
+# Local environment and secret material. The baseline scanner answers for what
+# already landed; this is what keeps it from landing.
+.env*
+!.env.example
+*.pem
+*.key
