@@ -8,10 +8,14 @@ on:
   pull_request:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  # Superseded branch runs are wasted minutes, so they cancel. Trunk is
-  # different: a cancelled run is recorded as `failure` with no failing
-  # job, and that red says nothing about the change.
+  # Superseded branch runs are wasted minutes, so they share a per-ref group
+  # and cancel. Trunk is different: a cancelled run is recorded as `failure`
+  # with no failing job, and that red says nothing about the change.
+  # `cancel-in-progress: false` alone does not protect it: a concurrency group
+  # holds one pending member, so a third push to `main` cancels the second
+  # while it is still queued. Trunk runs therefore get a group per commit,
+  # which is a group of one, so nothing they contend with can cancel them.
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.ref == 'refs/heads/main' && format('-{0}', github.sha) || '' }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
