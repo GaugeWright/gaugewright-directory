@@ -20,6 +20,12 @@ command -v cargo-audit >/dev/null || {
 }
 cargo audit
 
+# Rendered from tools/shared-checks/build-coverage.mjs in the GaugeWright
+# repository, which owns it. It fails when a cargo workspace or a lockfile is
+# watched by nothing. Edit it there and re-render; a local edit fails here.
+echo "== build coverage =="
+node scripts/check-build-coverage.mjs
+
 echo "== agent guide =="
 node scripts/check-agent-guide.mjs
 
