@@ -14,7 +14,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
 
-const EXPECTED_DIGEST = "dcf9d04d1272573805786790e00a6b2d7e660da57fc885696b2acf95b82e0e7b";
+const EXPECTED_DIGEST = "c15ab6088aff530724ba2b54e3e2855a4b5cf0d654888f23c58daf69fda830b7";
 const BEGIN = "<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE";
 const END = "<!-- END GAUGEWRIGHT SHARED AGENT GUIDE -->";
 
