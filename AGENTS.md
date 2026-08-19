@@ -42,7 +42,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c15ab6088aff530724ba2b54e3e2855a4b5cf0d654888f23c58daf69fda830b7 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:2a7d0b380cf51a6adf6662875102a3594e866f425ace85f90a1e5b4791ebbdd4 -->
 
 ## Working in a GaugeWright repository
 
@@ -92,8 +92,13 @@ repair is the missing check, not a human reading of the diff.
 Do not manually dispatch, rerun, enable, or disable GitHub Actions workflows.
 The configured gates run on their own triggers. A failed gate is diagnosed
 locally and corrected in one coherent follow-up commit rather than by hosted
-reruns. Any manual Actions invocation needs an explicit founder request in the
-current conversation.
+reruns. One exception (DR-0084): a scheduler-dropped run — still queued thirty
+minutes after creation with zero jobs started while sibling runs on the same
+commit completed — may be re-run without a founder request, because a run that
+never started carries no evidence a rerun could destroy. When the rerun API
+fails on such a run too, amend the head commit and push with
+`--force-with-lease` to mint fresh gating runs. Any other manual Actions
+invocation needs an explicit founder request in the current conversation.
 
 ### Toolchains
 
