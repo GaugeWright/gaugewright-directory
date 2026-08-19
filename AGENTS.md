@@ -42,7 +42,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:dcf9d04d1272573805786790e00a6b2d7e660da57fc885696b2acf95b82e0e7b -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c15ab6088aff530724ba2b54e3e2855a4b5cf0d654888f23c58daf69fda830b7 -->
 
 ## Working in a GaugeWright repository
 
@@ -67,10 +67,20 @@ out of habit.
 
 ### Landing a change
 
-Work on a branch cut from `origin/main`, run `scripts/check.sh`, and open a pull
-request. An implementation request already authorizes the pull requests the
-repository's normal protected-branch workflow requires; no separate
-confirmation is needed.
+Work on a branch cut from `origin/main`, in your own worktree. Use atomic
+commits with direct messages and keep unrelated changes out.
+
+A pull request carries a substantive, cohesive body of work — it is not the
+unit of every change. When the work is that: run `scripts/check.sh`, open the
+pull request, and merge it. A small fix is not that: for UI/UX tweaks, little
+corrections, and any change where related follow-ups are likely, run the check,
+commit on your branch, and stop — the founder says when accumulated commits
+become a pull request. Judge the change by its own shape, not by whether it
+belongs to a larger effort; a sequence of small requests may be an effort only
+the founder can see. Open a pull request before the work is complete only when
+you genuinely need the hosted gate's output, which the local check cannot give
+you. An implementation request already authorizes the pull requests this
+workflow requires; no separate confirmation is needed.
 
 Merge your own pull request once the required gates pass. Do not wait for a
 review — GaugeWright has no independent reviewer, and the gates plus the commit
@@ -84,8 +94,6 @@ The configured gates run on their own triggers. A failed gate is diagnosed
 locally and corrected in one coherent follow-up commit rather than by hosted
 reruns. Any manual Actions invocation needs an explicit founder request in the
 current conversation.
-
-Use atomic commits with direct messages and keep unrelated changes out.
 
 ### Toolchains
 
