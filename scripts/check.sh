@@ -41,4 +41,24 @@ cargo clippy --all-targets -- -D warnings
 echo "== tests =="
 cargo test
 
+# The docs build is the only thing that reads mkdocs.yml, the theme override
+# under overrides/, and assets/brand.css. Nothing here read them until now: the
+# site composes this build from gaugewright-site/docs-site/build.sh, so the
+# first place a broken theme reference could appear was that build, in another
+# repository, after the change had already landed here.
+echo "== documentation =="
+command -v mkdocs >/dev/null || {
+    echo "mkdocs is not installed; run: python3 -m pip install -r docs/requirements.txt" >&2
+    exit 1
+}
+# Output goes to the gitignored target/, the same site_dir mkdocs.yml names.
+mkdocs build --strict
+# Rendered from tools/docs-theme/repo-check.mjs in the GaugeWright repository,
+# which owns the documentation theme (DR-0093). It verifies both that this
+# repository still carries what was rendered into it and that the theme reached
+# the built page: --strict fails on a missing custom_dir but resolves neither
+# extra_css nor a template's own references, so a build that lost its brand
+# stylesheet, mark, or faces exits zero.
+node scripts/check-docs-theme.mjs
+
 echo "== gaugewright-directory green bar PASSED =="

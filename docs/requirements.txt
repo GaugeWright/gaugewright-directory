@@ -1,0 +1,5 @@
+# Build dependencies for this repository's half of the documentation site
+# (docs.gaugewright.com/directory/). The pin matches the one gaugedesk-src
+# carries for the other half, so the two builds the site composes cannot
+# resolve different themes.
+mkdocs-material>=9.5,<10
