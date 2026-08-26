@@ -42,7 +42,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:2a7d0b380cf51a6adf6662875102a3594e866f425ace85f90a1e5b4791ebbdd4 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:4a3bda1f2115ca679599c0e012737f1317d2ab2d0551cead28a2dce26329a401 -->
 
 ## Working in a GaugeWright repository
 
@@ -71,16 +71,20 @@ Work on a branch cut from `origin/main`, in your own worktree. Use atomic
 commits with direct messages and keep unrelated changes out.
 
 A pull request carries a substantive, cohesive body of work — it is not the
-unit of every change. When the work is that: run `scripts/check.sh`, open the
-pull request, and merge it. A small fix is not that: for UI/UX tweaks, little
-corrections, and any change where related follow-ups are likely, run the check,
-commit on your branch, and stop — the founder says when accumulated commits
-become a pull request. Judge the change by its own shape, not by whether it
-belongs to a larger effort; a sequence of small requests may be an effort only
-the founder can see. Open a pull request before the work is complete only when
-you genuinely need the hosted gate's output, which the local check cannot give
-you. An implementation request already authorizes the pull requests this
-workflow requires; no separate confirmation is needed.
+unit of every change. When the work is that, run `scripts/check.sh`, open the
+pull request, and merge it; an implementation request already authorizes it, so
+do not ask first. A small fix is not that: for a UI or UX tweak, a little
+correction, or one step in a chain of related changes, run the check, commit on
+your branch, and stop — the founder says when accumulated commits become a pull
+request. Likely follow-up work is reason to hold whether or not you can see the
+effort it belongs to. Holding is a smaller unit of delivery, not a request for
+review: nothing is waiting on a reading of your diff. Open before the work is
+complete only when you genuinely need the hosted gate's output, which the local
+check cannot give you.
+
+A change whose result is visual is shown to the founder on a running local
+instance before its pull request. The gates report structure and behaviour, and
+can all pass while the founder's read of the interface says the change is wrong.
 
 Merge your own pull request once the required gates pass. Do not wait for a
 review — GaugeWright has no independent reviewer, and the gates plus the commit
