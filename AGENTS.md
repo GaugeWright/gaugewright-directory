@@ -38,6 +38,14 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   with its evidence. `contracts/product-route.schema.json` is a copy of the
   manifest schema owned by `gaugedesk-src`; change it there first.
 - `docs/` holds the public explanation of the blind-directory model.
+- `docs/assets/brand.css`, `docs/assets/fonts/`, `docs/assets/mark-clear-64.png`
+  and `overrides/partials/logo.html` are the shared documentation theme: the
+  masthead signature, the palette, and the self-hosted brand faces that
+  `docs.gaugewright.com` carries on both halves. They are a copy of what
+  `gaugedesk-src` ships under the same paths, minus its capability badges;
+  change the theme there first and re-copy. Nothing checks the two for
+  divergence yet — the brand tokens they mirror are owned by the `GaugeWright`
+  repository (DR-0077), and a projector for the rest of the theme is not built.
 - Company-wide policy — repository ownership and secret boundaries — lives in
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.

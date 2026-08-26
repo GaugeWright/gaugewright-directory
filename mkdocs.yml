@@ -11,10 +11,23 @@ site_dir: target/directory-docs-site
 
 theme:
   name: material
+  # The masthead is the GaugeWright signature, drawn as gaugewright.com and the
+  # GaugeDesk docs draw it, from overrides/partials/logo.html.
+  custom_dir: overrides
+  # Brand fonts are self-hosted from docs/assets/brand.css. Disabling Material's
+  # loader avoids requesting Commit Mono from Google Fonts, where it is absent.
+  font: false
   palette:
+    # `custom` rather than a named Material primary: `black` carries its own
+    # `.md-header { background-color: ... }` rule, which would beat the navy
+    # declared in assets/brand.css. With `custom`, the header takes the
+    # marketing site's own background colour.
     scheme: slate
-    primary: black
+    primary: custom
     accent: light blue
+
+extra_css:
+  - assets/brand.css
 
 nav:
   - Overview: index.md
