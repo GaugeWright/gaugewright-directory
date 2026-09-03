@@ -49,7 +49,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:4a3bda1f2115ca679599c0e012737f1317d2ab2d0551cead28a2dce26329a401 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:e569e544faca09a8ba38c163405c6c4127a22ec5ff405927e9227b166833262b -->
 
 ## Working in a GaugeWright repository
 
@@ -100,6 +100,16 @@ particular change should not land, and say what the reason is. A change that
 ought to have been caught before landing is evidence the gate set is short; the
 repair is the missing check, not a human reading of the diff.
 
+A RED `main` is shared, so before repairing one, look for an open pull request
+already repairing it. Several sessions run at once and each meets the same red
+gate at the same moment, so the obvious repair gets written more than once — two
+sessions independently bumped the same two advisory-flagged lockfile entries on
+2026-09-02, and the second learned it only when its rebase conflicted. The waste
+is not the duplicate branch, which is cheap to close; it is that the second
+session spent its time believing it was unblocking work already unblocked. This
+is the collision the decision-record allocator exists to prevent, arriving
+through a door that has no allocator.
+
 Do not manually dispatch, rerun, enable, or disable GitHub Actions workflows.
 The configured gates run on their own triggers. A failed gate is diagnosed
 locally and corrected in one coherent follow-up commit rather than by hosted
@@ -110,6 +120,22 @@ never started carries no evidence a rerun could destroy. When the rerun API
 fails on such a run too, amend the head commit and push with
 `--force-with-lease` to mint fresh gating runs. Any other manual Actions
 invocation needs an explicit founder request in the current conversation.
+
+### Decision records
+
+A repository that keeps numbered decision records assigns a record's number
+when it lands, never when it is drafted. Draft under the repository's
+placeholder — the four digits replaced by `XXXX`, one drafted decision per
+branch — and cite the placeholder in prose. At landing, run the repository's
+allocator: it reads freshly fetched `origin/main`, takes the number after the
+highest one there, and rewrites the placeholder across the branch's changes.
+The check refuses a placeholder and any newly originated number that does not
+exceed every number on the current base, so two sessions racing for one number
+produce a red gate and one rerun of the allocator on the loser, never a merged
+duplicate — the failure that issued one number to two decisions in three
+repositories in one month. A merged number is never reassigned. A citation
+that crosses a repository boundary names the owning repository beside the
+number, because each repository runs its own sequence.
 
 ### Toolchains
 
