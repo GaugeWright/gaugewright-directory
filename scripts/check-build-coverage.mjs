@@ -36,7 +36,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const SOURCE_DIGEST = "06132706503a942abe4356d15d15ff0db482aa3f42b78548ecaa9e6abfc74b01";
+const SOURCE_DIGEST = "c3e38f6ac815a951d2170f0d645fd3d971fa2d3a43c0293023a668d292516ddd";
 const PLACEHOLDER = "__EXPECTED_DIGEST__";
 const POLICY_PATH = "scripts/build-coverage.policy.json";
 
@@ -71,6 +71,11 @@ function sweepExclusions(line) {
   });
 }
 
+/** Escape a path for use inside a RegExp — lockfile paths carry `.` and `/`. */
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+}
+
 /**
  * Read coverage out of what `check.sh` actually runs, across the idioms the
  * seven repositories use. A repository audits its root lockfile with a bare
@@ -87,14 +92,30 @@ export function analyze({ check, rustLocks, npmLocks, workspaces, exceptions = {
     else if (!exceptions[key]) findings.push({ kind, path });
   };
 
-  const bareCargoAudit = /^[ \t]*cargo audit[ \t]*$/m.test(check);
+  // Flags may sit between `cargo audit` and its lockfile. gaugewright-cloud
+  // passes `--no-fetch`/`--stale` through a variable so that an unreachable
+  // RustSec degrades to "audited against the copy on disk" instead of failing
+  // the run — and the moment those flags appeared, matching the bare text made
+  // both of that repository's audits invisible here. "Audited by nothing" for a
+  // lockfile audited on the very next line is the worst kind of false report:
+  // the obvious way to clear it is to declare an exception that is not true.
+  //
+  // So flags are tolerated and the lockfile is still required. What this proves
+  // is that every lockfile is named by an audit, not how that audit reaches its
+  // database.
+  const AUDIT_FLAGS = String.raw`(?:[ \t]+(?:-[^\s]+|\$[A-Za-z_][A-Za-z0-9_]*|\$\{[^}]+\}))*`;
+  const auditsLock = (lock) =>
+    new RegExp(
+      String.raw`cargo audit${AUDIT_FLAGS}[ \t]+--file[ \t]+${escapeRegExp(lock)}(?!\S)`,
+    ).test(check);
+  // A bare audit stands for the root lockfile, so it must carry no `--file`:
+  // that would name a different lockfile than the one it is being read as.
+  const bareCargoAudit = new RegExp(
+    String.raw`^[ \t]*cargo audit${AUDIT_FLAGS}[ \t]*$`,
+    "m",
+  ).test(check);
   for (const lock of rustLocks) {
-    claim(
-      "rust-audit",
-      lock,
-      check.includes(`cargo audit --file ${lock}`)
-        || (bareCargoAudit && lock === "Cargo.lock"),
-    );
+    claim("rust-audit", lock, auditsLock(lock) || (bareCargoAudit && lock === "Cargo.lock"));
   }
 
   // A root workspace is compiled by the ordinary cargo invocations; any other
