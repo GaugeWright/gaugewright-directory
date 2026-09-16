@@ -49,7 +49,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:e569e544faca09a8ba38c163405c6c4127a22ec5ff405927e9227b166833262b -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c010c864bacc485b34065aa1d77461501b47843ab61a7e16a083cb67ec330cff -->
 
 ## Working in a GaugeWright repository
 
@@ -71,6 +71,27 @@ different things. Deep suites that need Maude, Nix, Playwright, built bundles,
 or live providers are deliberately outside it and run on their own schedule or
 dispatch; run the deep script covering the area you changed, not the whole set
 out of habit.
+
+That promise is about *meaning*, not about every host answering every question.
+A section whose prerequisite the machine genuinely cannot supply — Debian
+archive tooling on a Mac, a Windows cross-compile off Windows — skips there and
+says so, naming the job that does run it. A section whose prerequisite the
+machine simply has not installed is the harder case, and the rule is the same
+one the native shells already follow: `scripts/check.sh` skips it, printing the
+exact command that closes the gap, while the direct invocation the gate runs
+refuses. What the gate covers never changes; only where the answer is available
+does.
+
+A gate must never fail with a message about the host when it has nothing to say
+about the change. That failure teaches the reader to wave red through, and it
+costs more than the check was worth — `stat -c%s` reported as a missing module,
+a preview bound to `::1` reported as a thirty-second timeout, an absent `mkdocs`
+failing a bar that had already passed everything it could answer. If a
+prerequisite is genuinely required, name it, name its remedy for the host in
+front of you, and fail on the section that needs it rather than on the whole
+run. If a tool is missing rather than inapplicable, prefer the split above to
+either extreme: a hard failure trains the reflex, and a silent skip is a gate
+that has quietly stopped gating.
 
 ### Landing a change
 
