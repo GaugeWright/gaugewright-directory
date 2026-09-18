@@ -10,6 +10,29 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# Stage 2 of the Buck2 migration (GaugeWright BUILD.md, DR-0124): each pure
+# section is a Buck2 target declaring what it reads. When this checkout is a
+# cell of a materialized workspace, a section runs through Buck2, which spares
+# the re-run when nothing the section declares has changed and otherwise runs
+# scripts/section.sh exactly as the direct path does. When it is not — a
+# worktree, a CI runner, a host without buck2 — the same script runs directly.
+# Same order, same command, same output, same verdict; Buck2 is under this bar,
+# never beside it. Inside a Buck2 action already running the whole bar, the
+# direct path is taken so no nested client meets the daemon.
+via_buck2=""
+if [ -z "${GREEN_BAR_INSIDE_BUCK2:-}" ] && command -v buck2 >/dev/null 2>&1 \
+   && buck2 audit cell 2>/dev/null | grep -qx "gaugewright-directory: $(pwd -P)"; then
+  via_buck2=1
+fi
+section() {
+  if [ -n "$via_buck2" ]; then
+    log="$(buck2 build "//:$1" --show-full-simple-output)"
+    cat "$log"
+  else
+    scripts/section.sh "$1"
+  fi
+}
+
 echo "== production dependency advisories =="
 # The audit lives here rather than in a workflow step so that the documented
 # local green bar and the enforced gate stay the same command. It reads the
@@ -24,16 +47,16 @@ cargo audit
 # repository, which owns it. It fails when a cargo workspace or a lockfile is
 # watched by nothing. Edit it there and re-render; a local edit fails here.
 echo "== build coverage =="
-node scripts/check-build-coverage.mjs
+section build-coverage
 
 echo "== agent guide =="
-node scripts/check-agent-guide.mjs
+section agent-guide
 
 echo "== product contracts =="
-node scripts/check-product-contracts.mjs --enforce-evidence
+section product-contracts
 
 echo "== formatting =="
-cargo fmt --all --check
+section formatting
 
 echo "== lints =="
 cargo clippy --all-targets -- -D warnings
@@ -47,18 +70,6 @@ cargo test
 # first place a broken theme reference could appear was that build, in another
 # repository, after the change had already landed here.
 echo "== documentation =="
-command -v mkdocs >/dev/null || {
-    echo "mkdocs is not installed; run: python3 -m pip install -r docs/requirements.txt" >&2
-    exit 1
-}
-# Output goes to the gitignored target/, the same site_dir mkdocs.yml names.
-mkdocs build --strict
-# Rendered from tools/docs-theme/repo-check.mjs in the GaugeWright repository,
-# which owns the documentation theme (DR-0093). It verifies both that this
-# repository still carries what was rendered into it and that the theme reached
-# the built page: --strict fails on a missing custom_dir but resolves neither
-# extra_css nor a template's own references, so a build that lost its brand
-# stylesheet, mark, or faces exits zero.
-node scripts/check-docs-theme.mjs
+section documentation
 
 echo "== gaugewright-directory green bar PASSED =="
