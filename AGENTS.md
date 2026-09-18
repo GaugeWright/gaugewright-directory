@@ -49,7 +49,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c010c864bacc485b34065aa1d77461501b47843ab61a7e16a083cb67ec330cff -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:4195ab044450cfa3096408597042391d3d8cde372e5af321ec77aa9b98414902 -->
 
 ## Working in a GaugeWright repository
 
@@ -141,6 +141,48 @@ never started carries no evidence a rerun could destroy. When the rerun API
 fails on such a run too, amend the head commit and push with
 `--force-with-lease` to mint fresh gating runs. Any other manual Actions
 invocation needs an explicit founder request in the current conversation.
+
+### Waiting on a gate
+
+A gate is waited on, never polled from the conversation. Arm one watch and let
+it report. For a question with one answer — has this run finished — use a
+backgrounded wait that exits when the run is terminal, which delivers exactly
+one notification; use a streaming monitor only when every occurrence is wanted.
+The watch matches every terminal state — success, failure, cancellation, and a
+run that never started — because a filter that reports only success is
+indistinguishable from a hung run, and a poll that was never issued is
+indistinguishable from a passing gate.
+
+Size the wait for the gate's real cost: a merge queue re-runs the whole bar
+against the merge result, cold build included, so a round-number ceiling
+reports a working queue as stuck. And read a check's exit status from the
+check: a pipeline returns its last command's status, so `scripts/check.sh |
+grep` under `set -e` commits a red bar. Write the transcript to a file and read
+it afterwards. The founder pinged agents whose polling had silently stopped on
+gates long finished; the session that then repaired three gates for reporting
+success while checking nothing hand-polled, over-notified, mis-sized a
+merge-queue wait, and piped its own green bar into `grep` (DR-0112).
+
+### Waiting on a gate
+
+A gate is waited on, never polled from the conversation. Arm one watch and let
+it report. For a question with one answer — has this run finished — use a
+backgrounded wait that exits when the run is terminal, which delivers exactly
+one notification; use a streaming monitor only when every occurrence is wanted.
+The watch matches every terminal state — success, failure, cancellation, and a
+run that never started — because a filter that reports only success is
+indistinguishable from a hung run, and a poll that was never issued is
+indistinguishable from a passing gate.
+
+Size the wait for the gate's real cost: a merge queue re-runs the whole bar
+against the merge result, cold build included, so a round-number ceiling
+reports a working queue as stuck. And read a check's exit status from the
+check: a pipeline returns its last command's status, so `scripts/check.sh |
+grep` under `set -e` commits a red bar. Write the transcript to a file and read
+it afterwards. The founder pinged agents whose polling had silently stopped on
+gates long finished; the session that then repaired three gates for reporting
+success while checking nothing hand-polled, over-notified, mis-sized a
+merge-queue wait, and piped its own green bar into `grep` (DR-0123).
 
 ### Decision records
 
