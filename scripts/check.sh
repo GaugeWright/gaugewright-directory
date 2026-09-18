@@ -31,41 +31,36 @@ case "${1:-best-effort}" in
   *)           prerequisites=required ;;
 esac
 
-# A step whose tool is absent. Returns non-zero when the caller must skip, so a
-# guarded step reads `if prerequisite …; then`; under `required` it never
-# returns at all.
-#
-#   $1 the tool, $2 what it gates, $3 the command that installs it
-prerequisite() {
-  command -v "$1" >/dev/null 2>&1 && return 0
-  if [ "$prerequisites" = required ]; then
-    echo "$2 requires $1." >&2
-    echo "install: $3" >&2
-    exit 1
-  fi
-  echo "-- $2 SKIPPED: $1 is not installed --" >&2
-  echo "   the ci.yml check job installs it and runs this on every pull request." >&2
-  echo "   To close the gap locally: $3" >&2
-  return 1
-}
+# The word travels with the section, and scripts/section.sh decides what an
+# absent tool means. It is in the Buck2 action's key too, so a run that skipped
+# a section is never served to a later run that required an answer.
 
-# Stage 2 of the Buck2 migration (GaugeWright BUILD.md, DR-0124): each pure
-# section is a Buck2 target declaring what it reads. When this checkout is a
+# Stages 2 and 3 of the Buck2 migration (GaugeWright BUILD.md, DR-0124): every
+# section of this bar is a Buck2 target declaring what it reads. When this checkout is a
 # cell of a materialized workspace, a section runs through Buck2, which spares
 # the re-run when nothing the section declares has changed and otherwise runs
 # scripts/section.sh exactly as the direct path does. When it is not — a
 # worktree, a CI runner, a host without buck2 — the same script runs directly.
 # Same order, same command, same output, same verdict; Buck2 is under this bar,
-# never beside it. Inside a Buck2 action already running the whole bar, the
-# direct path is taken so no nested client meets the daemon.
+# never beside it. Inside a Buck2 action already running a section, the direct
+# path is taken so no nested client meets the daemon.
+#
+# A section whose answer comes from outside this tree is spared nothing: it is
+# a `check_world` target, which refuses to run unless the invocation names the
+# run, so it cannot be answered from a cache by accident.
 via_buck2=""
 if [ -z "${GREEN_BAR_INSIDE_BUCK2:-}" ] && command -v buck2 >/dev/null 2>&1 \
    && buck2 audit cell 2>/dev/null | grep -qx "gaugewright-directory: $(pwd -P)"; then
   via_buck2=1
 fi
+# One nonce for the whole run: the world-reading sections put it in their
+# action's environment and will not run without it, while the cached sections
+# do not read the key and are undisturbed by it.
+GREEN_BAR_RUN="${GREEN_BAR_RUN:-$(date +%s)-$$}"
 section() {
   if [ -n "$via_buck2" ]; then
-    log="$(buck2 build "//:$1" --show-full-simple-output)"
+    log="$(buck2 build "//:$1" -c "green_bar.run=$GREEN_BAR_RUN" \
+      -c "green_bar.prerequisites=$prerequisites" --show-full-simple-output)"
     cat "$log"
   else
     prerequisites="$prerequisites" scripts/section.sh "$1"
@@ -76,9 +71,7 @@ echo "== production dependency advisories =="
 # The audit lives here rather than in a workflow step so that the documented
 # local green bar and the enforced gate stay the same command. It reads the
 # committed Cargo.lock, so it needs neither the platform submodule nor a build.
-if prerequisite cargo-audit "the dependency advisory audit" "cargo install cargo-audit"; then
-    cargo audit
-fi
+section advisories
 
 # Rendered from tools/shared-checks/build-coverage.mjs in the GaugeWright
 # repository, which owns it. It fails when a cargo workspace or a lockfile is
@@ -96,10 +89,10 @@ echo "== formatting =="
 section formatting
 
 echo "== lints =="
-cargo clippy --all-targets -- -D warnings
+section lints
 
 echo "== tests =="
-cargo test
+section tests
 
 # The docs build is the only thing that reads mkdocs.yml, the theme override
 # under overrides/, and assets/brand.css. Nothing here read them until now: the
