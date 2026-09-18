@@ -24,9 +24,18 @@ script:
 scripts/check.sh
 ```
 
-It covers the product-contract manifest with evidence enforcement, formatting,
-lints, and the test suite. Live verification against a deployed directory is
-separate and needs a reachable service:
+It covers the product-contract manifest with evidence enforcement, the advisory
+audit, formatting, lints, the test suite, and the strict documentation build.
+
+Two of those need a tool a workstation may not have installed — `cargo-audit`
+and `mkdocs`. A bare `scripts/check.sh` reports each absence, names the command
+that closes it, and runs everything else, so a bar that has answered everything
+it could about the change says so rather than failing about the host. The CI job
+installs both and runs `scripts/check.sh required`, which refuses to skip, so
+what the gate covers is unchanged.
+
+Live verification against a deployed directory is separate and needs a reachable
+service:
 
 ```sh
 GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
