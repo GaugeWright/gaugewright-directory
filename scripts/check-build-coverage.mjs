@@ -22,13 +22,43 @@
 // again in gaugewright-cloud: `infra/sev-guest-quote`, in the attestation path,
 // audited by nothing and compiled by nothing.
 //
+// WHERE THE ANSWER COMES FROM
+//
+// The obligations come from the tree: every tracked workspace manifest, every
+// tracked lockfile. Nothing can be dropped from that list by forgetting to
+// mention it, which is the whole point.
+//
+// The coverage comes from the build graph — the `covers` attribute of the
+// targets in the repository's BUCK files (GaugeWright BUILD.md, DR-0124,
+// stage 3). Until stage 3 it came from the text of scripts/check.sh, matched
+// against the shell idioms seven repositories happened to use, and the cost of
+// that is recorded in this file's own history: the moment gaugewright-cloud put
+// `--no-fetch` behind a variable on `cargo audit`, both of its real audits
+// became invisible here, and "audited by nothing" for a lockfile audited on the
+// very next line is the worst kind of false report, because the obvious way to
+// clear it is to declare an exception that is a lie. Trees built through shell
+// variables could not be matched at all, which is why "is this npm tree built?"
+// was never an obligation.
+//
+// A declaration has no idioms. `covers = ["rust-audit:Cargo.lock"]` says one
+// thing, and Buck2 refuses to analyse a target whose `covers` names a file the
+// target does not also declare in `srcs` — so a claim is about something the
+// step actually opens. What this check adds is the other direction: that every
+// obligation in the tree is claimed by some target.
+//
+// It reads the BUCK files as text rather than asking Buck2, deliberately. This
+// check runs in every green bar, including on a CI runner and in a lone
+// checkout, and a lone checkout is not a Buck2 project — the project root is the
+// workspace that contains every repository. Making Buck2 a prerequisite of the
+// bar to read a declaration out of a declarative file would buy nothing and cost
+// the constraint that no stage introduces a hard host prerequisite.
+//
 // WHAT IT DELIBERATELY DOES NOT ENFORCE
 //
-// "Is this npm tree built or tested?" is not here. It is not portable: whipplescript-src
-// builds its trees through shell variables a matcher cannot resolve, and
-// gaugewright-cloud builds its trees in a CI job rather than in check.sh. An
-// obligation that reports false failures in two of seven repositories would be
-// switched off, and a check nobody trusts is worse than no check.
+// "Is this npm tree built or tested?" is not here, and neither is "is this
+// target actually invoked by check.sh?" — the first because the obligation was
+// never portable, the second because a target's reachability is a question
+// about the script, which each repository's own gate answers.
 
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -36,7 +66,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const SOURCE_DIGEST = "c3e38f6ac815a951d2170f0d645fd3d971fa2d3a43c0293023a668d292516ddd";
+const SOURCE_DIGEST = "71b826bd12d78df786b2ba424f58ad62b493e8d76bc8ed8c14b91309d0a9d0db";
 const PLACEHOLDER = "__EXPECTED_DIGEST__";
 const POLICY_PATH = "scripts/build-coverage.policy.json";
 
@@ -63,85 +93,39 @@ function tracked(root, ...pathspecs) {
   return out.split("\0").filter(Boolean).sort();
 }
 
-/** `-not -path '<glob>'` exclusions on a `find` sweep, as matchers. */
-function sweepExclusions(line) {
-  return [...line.matchAll(/-not -path '([^']+)'/g)].map(([, glob]) => {
-    const pattern = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replaceAll("*", "[^\\0]*");
-    return new RegExp(`^${pattern}$`);
-  });
-}
-
-/** Escape a path for use inside a RegExp — lockfile paths carry `.` and `/`. */
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-}
-
 /**
- * Read coverage out of what `check.sh` actually runs, across the idioms the
- * seven repositories use. A repository audits its root lockfile with a bare
- * `cargo audit`, or names each one with `--file`; it sweeps npm trees with
- * `git ls-files` or `find`, audits a single root tree with a bare `npm audit`,
- * or names a tree with `--prefix`.
+ * The obligations the build graph claims: every string in a `covers = [...]`
+ * attribute, across the repository's BUCK files.
+ *
+ * A list of string literals in a declarative file, and nothing else is read
+ * from it. A target whose `covers` is computed rather than written out would be
+ * invisible here — which is why the rule that consumes this attribute takes a
+ * plain list of strings and Buck2 checks each one against `srcs`.
  */
-export function analyze({ check, rustLocks, npmLocks, workspaces, exceptions = {} }) {
+export function declaredCoverage(buck) {
+  const covered = new Set();
+  for (const [, body] of buck.matchAll(/\bcovers\s*=\s*\[([^\]]*)\]/g)) {
+    for (const [, entry] of body.matchAll(/["']([^"']+)["']/g)) covered.add(entry);
+  }
+  return covered;
+}
+
+export function analyze({ buck, rustLocks, npmLocks, workspaces, exceptions = {} }) {
+  const declared = declaredCoverage(buck);
   const findings = [];
   const covered = new Set();
-  const claim = (kind, path, isCovered) => {
+  const claim = (kind, path) => {
     const key = `${kind}:${path}`;
-    if (isCovered) covered.add(key);
+    if (declared.has(key)) covered.add(key);
     else if (!exceptions[key]) findings.push({ kind, path });
   };
 
-  // Flags may sit between `cargo audit` and its lockfile. gaugewright-cloud
-  // passes `--no-fetch`/`--stale` through a variable so that an unreachable
-  // RustSec degrades to "audited against the copy on disk" instead of failing
-  // the run — and the moment those flags appeared, matching the bare text made
-  // both of that repository's audits invisible here. "Audited by nothing" for a
-  // lockfile audited on the very next line is the worst kind of false report:
-  // the obvious way to clear it is to declare an exception that is not true.
-  //
-  // So flags are tolerated and the lockfile is still required. What this proves
-  // is that every lockfile is named by an audit, not how that audit reaches its
-  // database.
-  const AUDIT_FLAGS = String.raw`(?:[ \t]+(?:-[^\s]+|\$[A-Za-z_][A-Za-z0-9_]*|\$\{[^}]+\}))*`;
-  const auditsLock = (lock) =>
-    new RegExp(
-      String.raw`cargo audit${AUDIT_FLAGS}[ \t]+--file[ \t]+${escapeRegExp(lock)}(?!\S)`,
-    ).test(check);
-  // A bare audit stands for the root lockfile, so it must carry no `--file`:
-  // that would name a different lockfile than the one it is being read as.
-  const bareCargoAudit = new RegExp(
-    String.raw`^[ \t]*cargo audit${AUDIT_FLAGS}[ \t]*$`,
-    "m",
-  ).test(check);
-  for (const lock of rustLocks) {
-    claim("rust-audit", lock, auditsLock(lock) || (bareCargoAudit && lock === "Cargo.lock"));
-  }
-
-  // A root workspace is compiled by the ordinary cargo invocations; any other
-  // workspace has to be named, which is exactly what `src-tauri` never was.
-  const rootBuilt = /cargo (test|clippy|check)\b/.test(check);
+  for (const lock of rustLocks) claim("rust-audit", lock);
   for (const manifest of workspaces) {
-    const dir = dirname(manifest) === "." ? "." : dirname(manifest);
-    claim(
-      "rust-build",
-      dir,
-      dir === "." ? rootBuilt : check.includes(`--manifest-path ${manifest}`),
-    );
+    claim("rust-build", dirname(manifest) === "." ? "." : dirname(manifest));
   }
-
-  const sweepLine = check
-    .split("\n")
-    .find((line) => /git ls-files ['"]\*package-lock\.json|find \. -name package-lock\.json/.test(line));
-  const exclusions = sweepLine ? sweepExclusions(sweepLine) : [];
-  const bareNpmAudit = /^[ \t]*npm audit\b/m.test(check);
   for (const lock of npmLocks) {
-    const dir = dirname(lock) === "." ? "." : dirname(lock);
-    const sweptIn = Boolean(sweepLine) && !exclusions.some((rx) => rx.test(`./${lock}`));
-    const named = new RegExp(
-      `npm --prefix ["']?${dir.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}["']? audit`,
-    ).test(check);
-    claim("npm-audit", dir, sweptIn || named || (bareNpmAudit && dir === "."));
+    claim("npm-audit", dirname(lock) === "." ? "." : dirname(lock));
   }
 
   // An exception for something covered, or for something that no longer exists,
@@ -154,17 +138,26 @@ export function analyze({ check, rustLocks, npmLocks, workspaces, exceptions = {
   const stale = [];
   for (const key of Object.keys(exceptions)) {
     if (!universe.has(key)) stale.push({ key, why: "names nothing in the tree" });
-    else if (covered.has(key)) stale.push({ key, why: "is covered by check.sh" });
+    else if (covered.has(key)) stale.push({ key, why: "is covered by a target in BUCK" });
+  }
+  // A claim about an obligation the tree does not have is the same failure in
+  // the other direction: a target declaring coverage of a lockfile that was
+  // deleted reads as coverage until someone looks.
+  for (const key of declared) {
+    if (!universe.has(key)) stale.push({ key, why: "is claimed by a target in BUCK but names nothing in the tree" });
   }
   return { findings, stale, obligations: universe.size };
 }
 
 const DESCRIBE = {
-  "rust-audit": (p) => `${p} is audited by nothing (expected: cargo audit --file ${p})`,
+  "rust-audit": (p) =>
+    `${p} is audited by nothing (expected: a target in BUCK with covers = ["rust-audit:${p}"])`,
   "rust-build": (p) =>
     `the cargo workspace at ${p} is compiled by nothing `
-    + `(expected: cargo check --manifest-path ${p === "." ? "Cargo.toml" : `${p}/Cargo.toml`})`,
-  "npm-audit": (p) => `${p}/package-lock.json is audited by nothing`,
+    + `(expected: a target in BUCK with covers = ["rust-build:${p}"])`,
+  "npm-audit": (p) =>
+    `${p}/package-lock.json is audited by nothing `
+    + `(expected: a target in BUCK with covers = ["npm-audit:${p}"])`,
 };
 
 export function readPolicy(root) {
@@ -187,8 +180,9 @@ async function main() {
   const workspaces = tracked(root, "*Cargo.toml").filter((manifest) =>
     /^\[workspace\]$/m.test(readFileSync(resolve(root, manifest), "utf8")),
   );
+  const buckFiles = tracked(root, "BUCK", "*/BUCK");
   const { findings, stale, obligations } = analyze({
-    check: readFileSync(resolve(root, "scripts/check.sh"), "utf8"),
+    buck: buckFiles.map((f) => readFileSync(resolve(root, f), "utf8")).join("\n"),
     rustLocks: tracked(root, "*Cargo.lock"),
     npmLocks: tracked(root, "*package-lock.json"),
     workspaces,
@@ -197,18 +191,19 @@ async function main() {
 
   for (const { kind, path } of findings) console.error(`FAIL  ${DESCRIBE[kind](path)}`);
   for (const { key, why } of stale) {
-    console.error(`FAIL  the declared exception ${key} ${why}; remove it`);
+    console.error(`FAIL  the declared coverage or exception ${key} ${why}; remove it`);
   }
   if (findings.length || stale.length) {
-    console.error(`\nCover it in scripts/check.sh, or declare it in ${POLICY_PATH} with the lane that does.`);
+    console.error(`\nCover it with a target in BUCK, or declare it in ${POLICY_PATH} with the lane that does.`);
     process.exitCode = 1;
     return;
   }
 
-  const declared = Object.keys(exceptions).length;
+  const declaredExceptions = Object.keys(exceptions).length;
   console.log(
-    `build coverage check passed: ${obligations} obligations, `
-      + `${declared} declared exception${declared === 1 ? "" : "s"}.`,
+    `build coverage check passed: ${obligations} obligation${obligations === 1 ? "" : "s"} `
+      + `across ${buckFiles.length} BUCK file${buckFiles.length === 1 ? "" : "s"}, `
+      + `${declaredExceptions} declared exception${declaredExceptions === 1 ? "" : "s"}.`,
   );
 }
 
