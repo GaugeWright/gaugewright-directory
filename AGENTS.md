@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:4195ab044450cfa3096408597042391d3d8cde372e5af321ec77aa9b98414902 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c0e3759351162b8e79357488a128a07f2caaf37eb0b4773c12aa1c81cd760fb7 -->
 
 ## Working in a GaugeWright repository
 
@@ -87,20 +87,36 @@ archive tooling on a Mac, a Windows cross-compile off Windows — skips there an
 says so, naming the job that does run it. A section whose prerequisite the
 machine simply has not installed is the harder case, and the rule is the same
 one the native shells already follow: `scripts/check.sh` skips it, printing the
-exact command that closes the gap, while the direct invocation the gate runs
-refuses. What the gate covers never changes; only where the answer is available
-does.
+exact command that closes the gap, while the invocation the gate runs refuses.
+What the gate covers never changes; only where the answer is available does.
+
+Do not write that split by hand. `scripts/prerequisite.sh` states it once, is
+rendered from the GaugeWright repository, and is sourced by the bar that uses
+it; a repository sets `prerequisites` from its own argument and calls
+`prerequisite <tool> <what it gates> <install command>`. The gate passes the
+word that makes the install steps above it load-bearing — `scripts/check.sh
+required`, or a section's own `required` — so a dropped install reddens the gate
+rather than quietly buying itself a skip.
 
 A gate must never fail with a message about the host when it has nothing to say
 about the change. That failure teaches the reader to wave red through, and it
 costs more than the check was worth — `stat -c%s` reported as a missing module,
 a preview bound to `::1` reported as a thirty-second timeout, an absent `mkdocs`
-failing a bar that had already passed everything it could answer. If a
-prerequisite is genuinely required, name it, name its remedy for the host in
-front of you, and fail on the section that needs it rather than on the whole
-run. If a tool is missing rather than inapplicable, prefer the split above to
-either extreme: a hard failure trains the reflex, and a silent skip is a gate
-that has quietly stopped gating.
+failing a bar that had already passed everything it could answer. That last one
+is why the helper exists rather than the advice alone: the rule was written
+against it and it stayed in place, and a sweep then found the same hard exit
+around `cargo-audit`, `cargo-deny`, `wasm-bindgen`, `wrangler` and `mkdocs` in
+four repositories, one of them guarding the first step of a bar so that a
+workstation without the tool learned nothing whatever about its change
+(DR-0127). Prose that every repository has to re-implement gets
+re-implemented four ways.
+
+If a prerequisite is genuinely required — a step that cannot proceed without it
+rather than one that can be reported and skipped — name it, name its remedy for
+the host in front of you, and fail on the section that needs it rather than on
+the whole run. A hard failure trains the reflex, and a silent skip is a gate
+that has quietly stopped gating; a bar that closes by saying what it could not
+establish is neither.
 
 ### Landing a change
 
@@ -194,6 +210,28 @@ success while checking nothing hand-polled, over-notified, mis-sized a
 merge-queue wait, and piped its own green bar into `grep` (DR-0123).
 
 ### Decision records
+
+A decision record is called that — `DR`, cited `DR-NNNN` — in every
+repository. Do not write `ADR` in new text; correct an old citation when you
+next edit the text around it, not in a sweep.
+
+Every record declares its class. A **founder decision** introduces a plan or
+direction not already settled, makes an architectural or design choice with
+serious tradeoffs, touches scope, money, legal posture, a customer commitment,
+or governance, or reverses a decision the founder accepted; only the founder
+accepts it, and the record waits until they have. A **routine decision** is one
+whose answer follows from settled policy and specifications, or is obvious and
+reversible with no serious tradeoff; its author accepts it, marks it routine,
+and writes one sentence saying why. The founder reads routine decisions when
+they choose and reverses one they disagree with. When in doubt the record is a
+founder decision — but doubt means a real tradeoff you cannot resolve from what
+is settled, not the reflex to ask. The founder's time was going to "yes,
+approve" on records they had not read because the answer was obvious, and a
+gate that is waved through is not a gate (GaugeWright DR-0130).
+
+A record's text may be revised in place to correct or clarify it. A record is
+never deleted or renumbered, and a reversal is a new record or a status change
+on the old one, never its removal.
 
 A repository that keeps numbered decision records assigns a record's number
 when it lands, never when it is drafted. Draft under the repository's
