@@ -22,10 +22,15 @@ load("@gaugewright//tools/buck:check.bzl", "check_section", "check_unit", "check
 CARGO_UNIT = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "scripts/section.sh"] \
     + glob(["src/**/*.rs", "tests/**/*.rs"])
 
+# Both are cargo, so both keep the cores busy and both take this repository's
+# target directory lock while they run (the gaugewright cell's
+# tools/buck/check.bzl). `cores` is what they hold of the machine; it is two at
+# a time on a sixteen-core workstation and one on anything smaller.
 check_unit(
     name = "lints",
     checkout = "gaugewright-directory",
     command = "scripts/section.sh lints",
+    cores = 8,
     covers = ["rust-build:."],
     srcs = CARGO_UNIT,
 )
@@ -34,6 +39,7 @@ check_unit(
     name = "tests",
     checkout = "gaugewright-directory",
     command = "scripts/section.sh tests",
+    cores = 8,
     covers = ["rust-build:."],
     srcs = CARGO_UNIT,
 )
