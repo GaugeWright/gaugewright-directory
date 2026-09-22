@@ -57,7 +57,9 @@ check_section(
     name = "build-coverage",
     checkout = "gaugewright-directory",
     command = "scripts/section.sh build-coverage",
-    srcs = ["Cargo.toml", "Cargo.lock", "scripts/check.sh", "scripts/section.sh", "scripts/check-build-coverage.mjs"]
+    # The coverage claim is read out of this BUCK file itself; the read sandbox
+    # (GaugeWright FLEET.md stage 0) found it undeclared on 2026-09-22.
+    srcs = ["BUCK", "Cargo.toml", "Cargo.lock", "scripts/check.sh", "scripts/section.sh", "scripts/check-build-coverage.mjs"]
         + glob([".github/workflows/*.yml", "scripts/build-coverage.policy.json"]),
 )
 
@@ -75,7 +77,11 @@ check_section(
     name = "product-contracts",
     checkout = "gaugewright-directory",
     command = "scripts/section.sh product-contracts",
-    srcs = ["contracts/product-routes.json", "src/lib.rs", "scripts/section.sh", "scripts/check-product-contracts.mjs"],
+    # Every evidence id in the contract names a file, and the check asks that
+    # each exists — the integration tests today. The read sandbox (GaugeWright
+    # FLEET.md stage 0) found tests/directory_wiring.rs undeclared on 2026-09-22.
+    srcs = ["contracts/product-routes.json", "src/lib.rs", "scripts/section.sh", "scripts/check-product-contracts.mjs"]
+        + glob(["tests/**/*"]),
 )
 
 check_section(
