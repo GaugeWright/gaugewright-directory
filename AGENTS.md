@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:ad8b026b5c605de7ff0c061125ec1c5c78f55094ba003f40e6bf9470266debc8 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b26fe6c89cd81ccd27aa5840c081e84b71890b7c12fa2326ede214a32170c6af -->
 
 ## Working in a GaugeWright repository
 
@@ -171,6 +171,15 @@ request is answered again when `main` moves, so a fix on `main` reaches it at
 the next sweep without a rebase; a green one is not re-run. A verdict that
 arrives in seconds is the fleet's action cache answering for sections whose
 inputs the change did not touch, and its transcript is the original run's.
+
+The status links to that transcript: `target_url` on it is the whole bar as
+the host that ran it saw it, served by that host over the fleet's network.
+Read it before reproducing anything — a red names its section there, and the
+skips a green took are the other half of what the bar actually established.
+It is a link to a machine's disk and not an archive: the host that wrote it
+serves it, transcripts are pruned, and a host that is off serves none. A
+verdict with no link is a host that advertises none, which is what every
+verdict carried before this.
 
 GitHub Actions runs no gate. A workflow that cannot start is noise, not a
 verdict; do not dispatch, rerun, enable or disable one, and do not read its
