@@ -82,6 +82,10 @@ section build-coverage
 echo "== agent guide =="
 section agent-guide
 
+echo "== agent guide, as an edge =="
+section carries-agent-guide
+section carries-agent-guide-checker
+
 echo "== product contracts =="
 section product-contracts
 

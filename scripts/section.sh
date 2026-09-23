@@ -44,6 +44,12 @@ case "${1:-}" in
     fi ;;
   build-coverage)    node scripts/check-build-coverage.mjs ;;
   agent-guide)       node scripts/check-agent-guide.mjs ;;
+  carries-agent-guide|carries-agent-guide-checker)
+    # The cross-repository edge (GaugeWright DR-0124 stage 4). In a workspace
+    # the bar builds the `carries` target and never reaches here; reaching here
+    # means there is no `gaugewright` cell, so the question cannot be asked.
+    echo "#unasserted: $1 needs a materialized workspace; the digest check answered instead"
+    echo "-- $1 SKIPPED: no gaugewright cell outside a workspace --" >&2 ;;
   product-contracts) node scripts/check-product-contracts.mjs --enforce-evidence ;;
   formatting)        cargo fmt --all --check ;;
   lints)             cargo clippy --all-targets -- -D warnings ;;
