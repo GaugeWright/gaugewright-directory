@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b26fe6c89cd81ccd27aa5840c081e84b71890b7c12fa2326ede214a32170c6af -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:6aae9b658343a3605a7e024ee76ecdf53f6f0bf6abe95f1156c96f6e2ae5cb28 -->
 
 ## Working in a GaugeWright repository
 
@@ -124,16 +124,32 @@ Work on a branch cut from `origin/main`, in your own worktree. Use atomic
 commits with direct messages and keep unrelated changes out.
 
 A pull request carries a substantive, cohesive body of work — it is not the
-unit of every change. When the work is that, run `scripts/check.sh`, open the
-pull request, and merge it; an implementation request already authorizes it, so
-do not ask first. A small fix is not that: for a UI or UX tweak, a little
-correction, or one step in a chain of related changes, run the check, commit on
-your branch, and stop — the founder says when accumulated commits become a pull
-request. Likely follow-up work is reason to hold whether or not you can see the
+unit of every change. When the work is that, open the pull request and merge it
+on the fleet's verdict; an implementation request already authorizes it, so do
+not ask first. A small fix is not that: for a UI or UX tweak, a little
+correction, or one step in a chain of related changes, commit on your branch
+and stop — the founder says when accumulated commits become a pull request.
+
+Do not run the whole bar locally first. The fleet answers a push on a machine
+built for it, warm, in a couple of minutes, and it is the verdict that counts;
+running the same bar on the workstation beforehand does the work twice and does
+the second copy on the machine somebody is trying to use. Measured on
+2026-09-22: a dozen sessions on one laptop, each running a full bar before
+pushing, took the load average past 140, and two separate failures were
+misdiagnosed that day because a wall-clock number read under that load
+described the machine rather than the change.
+
+Run locally what you are actually working on — the section you changed, the
+test you are iterating on, `scripts/section.sh <name>` — which is fast and
+tells you something the fleet's verdict would tell you slower. Run the whole
+bar when you have a reason: no fleet host can answer your repository, you are
+changing the bar itself, or you are about to land something whose failure would
+be expensive to discover on `main`. The one check command has not changed and
+neither has what the gate runs; what changed is that a machine exists whose job
+is to run it, and yours is not it. Likely follow-up work is reason to hold whether or not you can see the
 effort it belongs to. Holding is a smaller unit of delivery, not a request for
 review: nothing is waiting on a reading of your diff. Open before the work is
-complete only when you genuinely need the hosted gate's output, which the local
-check cannot give you.
+complete only when you genuinely need a verdict you cannot get otherwise.
 
 A change whose result is visual is shown to the founder on a running local
 instance before its pull request. The gates report structure and behaviour, and
@@ -156,11 +172,33 @@ session spent its time believing it was unblocking work already unblocked. This
 is the collision the decision-record allocator exists to prevent, arriving
 through a door that has no allocator.
 
-The gate is the company's own fleet, not the forge (DR-0131). It posts one
-commit status per verdict: `gaugewright/bar` is the repository's
-`scripts/check.sh required`, and a repository whose manifest entry declares
-platform jobs carries one more context each — `gaugewright/bar/macos` is the
-desktop shell compiled on a Mac. A pull request is answered at the forge's
+The gate is the company's own fleet, not the forge (DR-0131). It posts a
+commit status per verdict, and a repository has more than one.
+`gaugewright/bar` is its `scripts/check.sh required`. Each entry in its
+manifest `gate.jobs` adds one more under its own context, and the entry's
+`every` says which of two kinds it is: a job without `every` is per-change and
+posts on a pull request head, like gaugedesk-src's `gaugewright/bar/macos` or
+whipplescript-src's `gaugewright/bar/windows`; a job with `every` is a cadence
+check due on the default branch and never posts on a pull request at all, like
+the GaugeWright repository's seven 24h and 7d contexts.
+`gaugewright/host/<name>` is a third kind and is not about any change: a host's
+own proof that it can run work, which is where to look when every pull request
+from one host has gone red.
+
+So the combined `.state` is not the verdict, and it misleads in both
+directions. It covers only the contexts that have POSTED, so `success` can
+mean no more than that nothing which reported said no while a per-change job
+is still unclaimed — on 2026-09-22 gaugedesk-src#708's `bar/macos` posted
+twenty minutes after its `bar`, and merging on the combined state would have
+skipped the desktop compile. And a host proof turns it red while every bar is
+green: GaugeWright's `main` read `failure` on `gaugewright/host/winworker`,
+which had failed its own proof and stopped claiming, with `gaugewright/bar`
+green beside it. Read `gate.jobs` from `tools/vmr/manifest.json` to learn
+which contexts a change is owed, list every status the commit carries, and
+judge those; never read `.state` alone, and never read `.statuses[0]`, which
+picks an arbitrary context. A red default branch is not necessarily a red bar.
+
+A pull request is answered at the forge's
 test merge of its head onto `main`, so the verdict is about what would land,
 and it is bound to the head commit that was pushed. `gh pr checks` shows it.
 The description says which host answered and against which `main`; `pending`
@@ -197,10 +235,13 @@ run that never started — because a filter that reports only success is
 indistinguishable from a hung run, and a poll that was never issued is
 indistinguishable from a passing gate.
 
-For the fleet's verdict the one answer is the commit status: wait on
-`gh api repos/<owner>/<repo>/commits/<sha>/status` until every
-`gaugewright/bar*` context the repository declares is terminal, and read the
-state from the reply, not from a workflow list. Size the wait for the gate's
+For the fleet's verdict the answer is the commit statuses: wait on
+`gh api repos/<owner>/<repo>/commits/<sha>/status` until every per-change
+context the change is owed — `gaugewright/bar` and each `gate.jobs` entry
+without an `every` — has posted and is terminal, and read those states from
+the reply, not the combined one and not a workflow list. Waiting on the
+combined state alone returns early, because a context that has not posted yet
+is not holding it back. Size the wait for the gate's
 real cost: a cold bar on a busy host is minutes, and a queue with several
 hosts drains in the order of what only one platform can answer first, then
 age, so a round-number ceiling reports a working queue as stuck. And read a
