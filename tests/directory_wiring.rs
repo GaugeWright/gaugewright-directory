@@ -1,3 +1,4 @@
+use std::fs::File;
 use std::net::TcpListener;
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
@@ -20,6 +21,21 @@ struct DirectoryProcess {
     origin: String,
 }
 
+/// What the binary wrote before it stopped, for a failure message.
+///
+/// The fixture used to send both of its streams to `Stdio::null()`, so a
+/// server that panicked, could not open its database, or refused its address
+/// failed this test as "did not become ready on loopback" — a statement that
+/// ten seconds passed and nothing else. Its own first line says which of
+/// those it was.
+fn said(log: &Path) -> String {
+    match std::fs::read_to_string(log) {
+        Ok(text) if !text.trim().is_empty() => format!("; it said: {}", text.trim()),
+        Ok(_) => "; it wrote nothing before stopping".to_string(),
+        Err(error) => format!("; its log at {} could not be read: {error}", log.display()),
+    }
+}
+
 impl DirectoryProcess {
     fn start(root: &Path) -> Self {
         let probe = TcpListener::bind("127.0.0.1:0").expect("reserve loopback port");
@@ -29,20 +45,34 @@ impl DirectoryProcess {
         let ready = root.join("ready");
         let database = root.join("directory.db");
         let _ = std::fs::remove_file(&ready);
-        let child = Command::new(env!("CARGO_BIN_EXE_gaugewright-directory"))
+        // Both streams to a file rather than to null: kept out of a passing
+        // run's output, and read back into the message when the fixture fails.
+        let log = root.join("directory.log");
+        let sink = File::create(&log).expect("create the directory binary's log");
+        let errors = sink.try_clone().expect("share the log with stderr");
+        let mut child = Command::new(env!("CARGO_BIN_EXE_gaugewright-directory"))
             .env("GAUGEWRIGHT_DIRECTORY_ADDR", format!("127.0.0.1:{port}"))
             .env("GAUGEWRIGHT_DIRECTORY_READY", &ready)
             .env("GAUGEWRIGHT_DIRECTORY_DB", &database)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stdout(Stdio::from(sink))
+            .stderr(Stdio::from(errors))
             .spawn()
             .expect("start production directory binary");
 
         let deadline = Instant::now() + Duration::from_secs(10);
         while !ready.exists() {
+            // A binary that has already exited is not slow, and waiting the
+            // rest of the ten seconds to call it slow loses the distinction.
+            if let Some(status) = child.try_wait().expect("poll the directory binary") {
+                panic!(
+                    "directory exited during startup with {status}{}",
+                    said(&log)
+                );
+            }
             assert!(
                 Instant::now() < deadline,
-                "directory did not become ready on loopback"
+                "directory did not become ready on loopback within 10s{}",
+                said(&log)
             );
             thread::sleep(Duration::from_millis(20));
         }
