@@ -96,10 +96,31 @@ if (!fs.existsSync(aliasPath)) {
 const GUIDE_NAMES = new Set(["AGENTS.MD", "CLAUDE.MD"]);
 const IGNORED_DIRS = new Set([".git", "node_modules", "target", "dist", "build"]);
 
+const realPath = (candidate) => {
+  try {
+    return fs.realpathSync(candidate);
+  } catch {
+    return path.resolve(candidate);
+  }
+};
+
+// An exported tree can sit inside an unrelated checkout, where git answers for
+// that parent repository and reports none of this tree's files. Only git's own
+// top level speaks for this tree.
+const rootIsGitTopLevel = () => {
+  const topLevel = spawnSync("git", ["-C", root, "rev-parse", "--show-toplevel"], {
+    encoding: "utf8",
+  });
+  if (topLevel.status !== 0) return false;
+  return realPath(topLevel.stdout.trim()) === realPath(root);
+};
+
 const trackedPaths = () => {
   // git ls-files also keeps submodule contents out of scope, which is what we
   // want: a consumed repository carries its own guide and is not this one's.
-  const listed = spawnSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" });
+  const listed = rootIsGitTopLevel()
+    ? spawnSync("git", ["-C", root, "ls-files", "-z"], { encoding: "utf8" })
+    : { status: 1 };
   if (listed.status === 0) {
     return listed.stdout.split("\0").filter(Boolean);
   }
