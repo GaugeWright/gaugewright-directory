@@ -13,6 +13,7 @@
 # scripts/check.sh runs these in its usual order when this checkout is a cell of
 # a materialized workspace, and runs the same commands directly when it is not.
 # The command for each is stated once, in scripts/section.sh.
+load("@gaugewright//tools/buck:artifact.bzl", "carries")
 load("@gaugewright//tools/buck:check.bzl", "check_section", "check_unit", "check_world")
 
 # The cargo workspace, twice: what clippy says about it and what its tests say.
@@ -99,4 +100,29 @@ check_section(
     command = "scripts/section.sh documentation",
     srcs = ["mkdocs.yml", "scripts/section.sh", "scripts/check-docs-theme.mjs"]
         + glob(["docs/**/*", "overrides/**/*"]),
+)
+
+# What this repository carries of the GaugeWright repository's, as an edge
+# rather than as a digest (GaugeWright BUILD.md, DR-0124 stage 4). The digest
+# section stays beside it: it is what a LONE checkout runs, where there is no
+# `gaugewright` cell to compare against.
+carries(
+    name = "carries-agent-guide",
+    artifact = "gaugewright//:agent-guide-block",
+    begins = "^<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE",
+    checkout = "gaugewright-directory",
+    ends = "^<!-- END GAUGEWRIGHT SHARED AGENT GUIDE -->",
+    path = "AGENTS.md",
+    region = True,
+    renderer = "node tools/agent-guide.mjs --write, in the GaugeWright repository",
+    srcs = ["AGENTS.md"],
+)
+
+carries(
+    name = "carries-agent-guide-checker",
+    artifact = "gaugewright//:agent-guide-checker",
+    checkout = "gaugewright-directory",
+    path = "scripts/check-agent-guide.mjs",
+    renderer = "node tools/agent-guide.mjs --write, in the GaugeWright repository",
+    srcs = ["scripts/check-agent-guide.mjs"],
 )
