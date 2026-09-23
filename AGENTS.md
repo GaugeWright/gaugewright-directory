@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:6aae9b658343a3605a7e024ee76ecdf53f6f0bf6abe95f1156c96f6e2ae5cb28 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c360371c5272a79b065c5cc445217d1f8cdd74d636a9bc541dcbadfa69f48adf -->
 
 ## Working in a GaugeWright repository
 
@@ -206,9 +206,20 @@ means a host has claimed the commit and is running it; `error` means the gate
 did not answer — the bar could not be run or exceeded its ceiling — which is a
 different fact from `failure` and is never waved through as either. A red pull
 request is answered again when `main` moves, so a fix on `main` reaches it at
-the next sweep without a rebase; a green one is not re-run. A verdict that
+the next sweep without a rebase. A verdict that
 arrives in seconds is the fleet's action cache answering for sections whose
 inputs the change did not touch, and its transcript is the original run's.
+
+A green is not re-run on every push to `main`, but it does expire. The verdict
+was about a test merge onto a base, and once that base is no longer the one
+the change would land on, the green describes a merge that no longer exists —
+while reading exactly like one taken a minute ago, because nothing on the
+commit records how far behind it is. So the bridge answers a green pull
+request again once its base has moved and a day has passed. Two changes here
+were merged on greens taken against bases three days and six weeks old before
+that rule existed. Until a re-answer arrives, the description says which
+`main` the verdict was computed against: if that is not the current one, what
+the fleet approved is not what you are about to merge.
 
 The status links to that transcript: `target_url` on it is the whole bar as
 the host that ran it saw it, served by that host over the fleet's network.
