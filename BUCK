@@ -51,7 +51,8 @@ check_world(
     checkout = "gaugewright-directory",
     command = "scripts/section.sh advisories",
     covers = ["rust-audit:Cargo.lock"],
-    srcs = ["Cargo.lock", "scripts/section.sh"],
+    # The accepted-advisory record is a dotfile, which no glob would declare.
+    srcs = ["Cargo.lock", ".cargo/audit.toml", "scripts/section.sh"],
 )
 
 check_section(

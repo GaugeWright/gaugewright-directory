@@ -16,9 +16,12 @@ license = "Apache-2.0"
 description = "gaugewright blind account directory: readable signed routing records + opaque sealed account blobs."
 
 [dependencies]
-gaugewright-core = { path = "platform/crates/core" }
-gaugewright-store = { path = "platform/crates/store" }
-gaugewright-app = { path = "platform/crates/app", default-features = false }
+gaugedesk-core = { path = "platform/crates/core" }
+gaugedesk-store = { path = "platform/crates/store" }
+# The wire types and verifier the hosted edge Worker compiles to wasm, so this
+# server and the hosted directory enforce one contract.
+gaugedesk-directory-protocol = { path = "platform/crates/directory-protocol" }
+sha2 = "0.11"
 axum = "0.7"
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "net"] }
 serde = { version = "1", features = ["derive"] }
@@ -26,6 +29,9 @@ serde_json = "1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 [dev-dependencies]
+# The pinned production client, so the wiring tests drive this server exactly as a
+# GaugeDesk install does. Test-only: the server itself needs only the protocol crate.
+gaugedesk-app = { path = "platform/crates/app", default-features = false }
 tempfile = "3"
 ureq = { version = "2", default-features = false, features = ["tls", "json"] }
 proptest = "1"
@@ -45,3 +51,14 @@ exclude = ["platform"]
 # Local crates keep full debuggability: panics and the debugger still work here.
 [profile.dev.package."*"]
 debug = false
+
+# The platform takes WhippleScript from a pinned git revision rather than the
+# crates.io release, through its own [patch.crates-io]. Cargo applies a patch
+# only from the top-level workspace, which here is this package, so the same
+# block is repeated at the same revision. Advancing the `platform` pin means
+# copying this block from platform/Cargo.toml again.
+[patch.crates-io]
+whipplescript = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
+whipplescript-kernel = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
+whipplescript-parser = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
+whipplescript-store = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }

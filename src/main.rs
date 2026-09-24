@@ -12,8 +12,8 @@
 //! `GAUGEWRIGHT_DIRECTORY_READY` file is touched once the listener is bound, so a
 //! container/orchestrator healthcheck can gate on it.
 
+use gaugedesk_store::Store;
 use gaugewright_directory::{directory_router, BlindDirectory};
-use gaugewright_store::Store;
 
 #[tokio::main]
 async fn main() {

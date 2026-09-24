@@ -5,14 +5,14 @@ use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
-use gaugewright_app::account::DirectoryRecord;
-use gaugewright_app::directory_sync::{
-    fetch as production_fetch, publish as production_publish,
+use gaugedesk_app::account::DirectoryRecord;
+use gaugedesk_app::directory_sync::{
+    fetch as production_fetch, publish as production_publish, signed_retract as production_retract,
     signing_bytes as production_signing_bytes, DirectoryEntry as ClientDirectoryEntry,
     SignedDirectoryPut as ClientSignedDirectoryPut,
 };
-use gaugewright_app::net_http::HttpClient;
-use gaugewright_core::signature::SigningKey;
+use gaugedesk_app::net_http::HttpClient;
+use gaugedesk_core::signature::SigningKey;
 use proptest::prelude::*;
 use proptest::test_runner::{Config, TestRunner};
 
@@ -93,12 +93,15 @@ impl Drop for DirectoryProcess {
 
 fn entry(root: &str, sealed_blob: String) -> ClientDirectoryEntry {
     ClientDirectoryEntry {
+        generation: 1,
         directory: DirectoryRecord {
             root_pubkey: root.to_string(),
             device_pubkeys: vec!["device-laptop".into(), "device-phone".into()],
             placement_pointers: vec!["relay+wss://relay.invalid/placement".into()],
+            home_routes: vec![],
         },
         sealed_blob,
+        retracted: false,
     }
 }
 
@@ -114,7 +117,8 @@ fn opaque_hex(bytes: &[u8]) -> String {
 
 fn signed(signing_key: &SigningKey, entry: ClientDirectoryEntry) -> ClientSignedDirectoryPut {
     ClientSignedDirectoryPut {
-        signature: signing_key.sign(&production_signing_bytes(&entry)),
+        signature: signing_key
+            .sign(&production_signing_bytes(&entry).expect("an entry serializes")),
         entry,
     }
 }
@@ -149,7 +153,9 @@ fn production_client_round_trip() {
     production_publish(&http, &process.origin, &admitted)
         .expect("production client signed publish");
     assert_eq!(
-        production_fetch(&http, &process.origin, &root).expect("production client readback"),
+        production_fetch(&http, &process.origin, &root)
+            .expect("production client readback")
+            .map(|record| record.entry),
         Some(original.clone()),
         "the pinned production GaugeDesk client reads back the exact admitted record"
     );
@@ -157,7 +163,9 @@ fn production_client_round_trip() {
     drop(process);
     let process = DirectoryProcess::start(state.path());
     assert_eq!(
-        production_fetch(&http, &process.origin, &root).expect("readback after process restart"),
+        production_fetch(&http, &process.origin, &root)
+            .expect("readback after process restart")
+            .map(|record| record.entry),
         Some(original.clone()),
         "the admitted record survives a production-binary restart"
     );
@@ -167,15 +175,19 @@ fn production_client_round_trip() {
     let forged = signed(&attacker, forged_entry);
     assert_eq!(raw_put(&process.origin, &root, &forged), 401);
     assert_eq!(
-        production_fetch(&http, &process.origin, &root).expect("read after denied forgery"),
+        production_fetch(&http, &process.origin, &root)
+            .expect("read after denied forgery")
+            .map(|record| record.entry),
         Some(original.clone()),
         "a denied wrong-key mutation leaves authoritative state unchanged"
     );
 
     let mismatched_path = attacker.public_key().as_str().to_string();
-    assert_eq!(raw_put(&process.origin, &mismatched_path, &admitted), 400);
+    assert_eq!(raw_put(&process.origin, &mismatched_path, &admitted), 422);
     assert_eq!(
-        production_fetch(&http, &process.origin, &root).expect("read after path mismatch"),
+        production_fetch(&http, &process.origin, &root)
+            .expect("read after path mismatch")
+            .map(|record| record.entry),
         Some(original),
         "a path/root mismatch leaves authoritative state unchanged"
     );
@@ -189,7 +201,7 @@ fn production_client_round_trip() {
         Err(ureq::Error::Status(status, _)) => status,
         Err(error) => panic!("directory transport failed: {error}"),
     };
-    assert_eq!(malformed, 400);
+    assert_eq!(malformed, 422);
 }
 
 #[test]
@@ -218,7 +230,9 @@ fn generated_signed_records_round_trip_and_forgery_never_mutates() {
                 "valid production-client publish must succeed"
             );
             prop_assert_eq!(
-                production_fetch(&http, &process.origin, &root).expect("generated readback"),
+                production_fetch(&http, &process.origin, &root)
+                    .expect("generated readback")
+                    .map(|record| record.entry),
                 Some(original.clone())
             );
 
@@ -234,10 +248,66 @@ fn generated_signed_records_round_trip_and_forgery_never_mutates() {
             prop_assert_eq!(raw_put(&process.origin, &root, &forged), 401);
             prop_assert_eq!(
                 production_fetch(&http, &process.origin, &root)
-                    .expect("generated post-denial readback"),
+                    .expect("generated post-denial readback")
+                    .map(|record| record.entry),
                 Some(original)
             );
             Ok(())
         })
         .expect("generated real-transport directory contract");
+}
+
+#[test]
+fn production_client_retracts_and_the_fence_holds_across_it() {
+    let state = tempfile::tempdir().expect("disposable directory state");
+    let process = DirectoryProcess::start(state.path());
+    let http = HttpClient::with_timeout(Duration::from_secs(2));
+
+    let owner = SigningKey::from_seed(&[31; 32]).expect("owner key");
+    let root = owner.public_key().as_str().to_string();
+    let first = entry(&root, "0001".into());
+    production_publish(&http, &process.origin, &signed(&owner, first.clone()))
+        .expect("first publish");
+
+    // The pinned production client's retraction advances the generation like any publish,
+    // and the root then reads as Gone, with the empty retraction as the body.
+    let retraction = production_retract(&owner, 2).expect("a retraction at generation two");
+    production_publish(&http, &process.origin, &retraction).expect("retraction publish");
+    let read = production_fetch(&http, &process.origin, &root)
+        .expect("the client reads a 410 as the retraction")
+        .expect("a retracted root still returns its retraction");
+    assert!(read.entry.retracted);
+    assert_eq!(read.entry.generation, 2);
+    assert_eq!(
+        public_status(&process.origin, &root),
+        410,
+        "a public reader sees the root as Gone"
+    );
+
+    // An old publish cannot be replayed to un-retract, and the owner re-appears by
+    // advancing past the retraction.
+    let mut replay = first.clone();
+    replay.sealed_blob = "beef".into();
+    assert_eq!(
+        raw_put(&process.origin, &root, &signed(&owner, replay)),
+        409
+    );
+    let mut again = entry(&root, "0003".into());
+    again.generation = 3;
+    production_publish(&http, &process.origin, &signed(&owner, again.clone()))
+        .expect("re-publish after retraction");
+    assert_eq!(
+        production_fetch(&http, &process.origin, &root)
+            .expect("readback")
+            .map(|record| record.entry),
+        Some(again)
+    );
+}
+
+fn public_status(origin: &str, root: &str) -> u16 {
+    match ureq::get(&format!("{origin}/directory/{root}")).call() {
+        Ok(response) => response.status(),
+        Err(ureq::Error::Status(status, _)) => status,
+        Err(error) => panic!("directory transport failed: {error}"),
+    }
 }
