@@ -19,9 +19,19 @@ load("@gaugewright//tools/buck:check.bzl", "check_section", "check_unit", "check
 # The cargo workspace, twice: what clippy says about it and what its tests say.
 # Both read the same unit — the manifest, the lockfile, the toolchain pin and
 # the sources — and both are what `covers` claims to the build-coverage check.
-# The platform submodule is excluded from the workspace, so it is not here.
+#
+# The platform submodule is excluded from the workspace but not from the build:
+# the crate and its tests take path dependencies into platform/, so what they
+# compile is as much the submodule's sources as this repository's. The read
+# sandbox binds platform/ by its gitlink without a declaration, but a verdict is
+# keyed on srcs alone, so an undeclared submodule let a pin advance that changed
+# nothing else here be answered from the verdict for the old pin. Its whole tree
+# is declared, not the crates cargo happens to reach today: its files change
+# only when the pin moves, which is exactly when these must re-run.
+PLATFORM = glob(["platform/**/*"], exclude = ["platform/**/node_modules/**", "platform/**/target/**"])
+
 CARGO_UNIT = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "scripts/section.sh"] \
-    + glob(["src/**/*.rs", "tests/**/*.rs"])
+    + glob(["src/**/*.rs", "tests/**/*.rs"]) + PLATFORM
 
 # Both are cargo, so both keep the cores busy and both take this repository's
 # target directory lock while they run (the gaugewright cell's
