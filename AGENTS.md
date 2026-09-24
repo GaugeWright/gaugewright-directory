@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:90adabeb7dd660d21263b3d67db63ce78d9d7ea300f4137ba3483ad2bb391969 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b3829d35af65e324d0eec5b0d1f833a2062e0244c88990fdbaa6cbc77369ba46 -->
 
 ## Working in a GaugeWright repository
 
@@ -234,6 +234,25 @@ GitHub Actions runs no gate. A workflow that cannot start is noise, not a
 verdict; do not dispatch, rerun, enable or disable one, and do not read its
 absence as a passing gate. The lanes that remain there — release, deploy,
 canary, scheduled — are not gates and are being rehomed on the fleet.
+
+### Stale documentation
+
+When you find documentation that no longer describes what is true — a README,
+a runbook, a comment, this guide, a specification that lags a decision already
+folded or a system as it now runs — correct it. Do not ask whether to. Make
+the correction in the change you are already making when it is in the same
+repository, or as its own commit on a branch in the repository that owns it,
+and say in your summary what you corrected. Where the repository's governance
+needs a record for a specification edit, a correction to match what is already
+true or already decided is a routine decision; write it and land it (GaugeWright
+DR-0138).
+
+This covers bringing text into line with the truth, not choosing the truth.
+When the documentation and the system disagree and it is not settled which one
+is right, that is a question, not a stale page: ask it, plainly, and correct
+whichever side the answer says is wrong. The founder was being asked, over and
+over, whether to update documentation that was plainly out of date, and the
+answer was always yes.
 
 ### Waiting on a gate
 
