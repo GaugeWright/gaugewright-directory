@@ -1,0 +1,21 @@
+# cargo-audit configuration: the triage record for advisories this repository
+# accepts. The scan stays green, but nothing is suppressed silently. Every entry
+# names the advisory, the date it was triaged, and why it cannot be exploited
+# through this repository.
+
+[advisories]
+ignore = [
+  # RUSTSEC-2023-0071, "Marvin Attack: key recovery through timing
+  # sidechannels" in `rsa` 0.9.x. No fixed version exists upstream.
+  #
+  # Reachability: `rsa` enters the lockfile only through `gaugedesk-app ->
+  # jsonwebtoken -> rsa`, and `gaugedesk-app` is a dev-dependency here. The
+  # wiring tests use it to drive this server as the production GaugeDesk client
+  # does. The directory binary does not link it (`cargo tree -e normal -i rsa`
+  # prints nothing), and the tests never perform an RSA private-key operation,
+  # which is what the attack needs. GaugeDesk accepts the same advisory for its
+  # own verify-only use in platform/.cargo/audit.toml.
+  #
+  # Triaged 2026-09-24, when advancing the platform pin brought it in.
+  "RUSTSEC-2023-0071",
+]

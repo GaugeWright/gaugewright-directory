@@ -6,9 +6,9 @@
 //! `#[ignore]`d: needs `GAUGEWRIGHT_DIRECTORY_URL` (e.g. `http://20.57.147.64:7901`). Run via
 //! `scripts/directory-check.sh`.
 
-use gaugewright_app::account::DirectoryRecord;
-use gaugewright_core::signature::SigningKey;
-use gaugewright_directory::{signing_bytes, DirectoryEntry, SignedDirectoryPut};
+use gaugedesk_app::account::DirectoryRecord;
+use gaugedesk_core::signature::SigningKey;
+use gaugewright_directory::{put_verifies, signing_bytes, DirectoryEntry, SignedDirectoryPut};
 
 fn env_or_skip(key: &str) -> Option<String> {
     match std::env::var(key) {
@@ -30,16 +30,19 @@ fn signed_publish_and_public_fetch_against_the_live_directory() {
     let sk = SigningKey::from_seed(&[5u8; 32]).expect("valid seed");
     let root = sk.public_key().as_str().to_string();
     let entry = DirectoryEntry {
+        generation: 1,
         directory: DirectoryRecord {
             root_pubkey: root.clone(),
             device_pubkeys: vec!["dev-laptop".into(), "dev-phone".into()],
             placement_pointers: vec!["relay://20.57.147.64:7900/p1".into()],
+            home_routes: vec![],
         },
         sealed_blob: "0a1b2c3d4e5f".into(), // opaque to the directory
+        retracted: false,
     };
     let put = SignedDirectoryPut {
         entry: entry.clone(),
-        signature: sk.sign(&signing_bytes(&entry)),
+        signature: sk.sign(&signing_bytes(&entry).expect("an entry serializes")),
     };
 
     let url = format!("{base}/directory/{root}");
@@ -48,22 +51,23 @@ fn signed_publish_and_public_fetch_against_the_live_directory() {
     let (code, _) = http_put_json(&url, &serde_json::to_value(&put).unwrap());
     assert_eq!(code, 204, "a validly-signed publish should be accepted");
 
-    // Public fetch → the readable record + opaque blob, byte-identical.
-    let got: DirectoryEntry = ureq::get(&url)
+    // Public fetch → the whole signed put, so the reader can verify it.
+    let got: SignedDirectoryPut = ureq::get(&url)
         .call()
         .expect("fetch should succeed")
         .into_json()
-        .expect("decode entry");
+        .expect("decode signed put");
     assert_eq!(
-        got, entry,
+        got.entry, entry,
         "the directory round-trips the record + sealed blob"
     );
+    assert!(put_verifies(&got), "the served put verifies under its root");
 
     // A write signed by the WRONG key over the same root must be refused (no hijack).
     let attacker = SigningKey::from_seed(&[9u8; 32]).expect("valid seed");
     let forged = SignedDirectoryPut {
         entry: entry.clone(),
-        signature: attacker.sign(&signing_bytes(&entry)),
+        signature: attacker.sign(&signing_bytes(&entry).expect("an entry serializes")),
     };
     let (code, _) = http_put_json(&url, &serde_json::to_value(&forged).unwrap());
     assert_eq!(

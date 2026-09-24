@@ -19,13 +19,24 @@ Per account root, exactly two things:
 ## The contract
 
 - **Reads are public.** Routing is meant to be found:
-  `GET /directory/:root`.
+  `GET /directory/:root` returns the latest signed publish exactly as it was
+  published, so you can check the root signature over it yourself.
 - **Writes are signed and fail-closed.** `PUT /directory/:root` verifies the
   signature against the record's *own* `root_pubkey`, so nobody can overwrite
-  your routing but you.
-- **Durable and append-only** (`INV-6`): each signed publish appends to the
-  reserved `directory` scope; on restart the read cache is rebuilt by folding
-  the log, latest-publish-per-root wins (`INV-5`).
+  your routing but you. A bad signature is `401`; a malformed publish, or one
+  whose root is not the path's, is `422`.
+- **Replays are refused.** Every publish carries a generation that must go up
+  by exactly one, so an old publish cannot be replayed over a newer one (`409`).
+  Re-sending a publish that was already accepted is harmless.
+- **You can withdraw.** A signed retraction is published like any other entry,
+  and the root then reads as `410 Gone`. Publishing again brings it back.
+- **Durable and append-only** (`INV-6`): each accepted publish appends to the
+  reserved `directory` scope; on restart the directory is rebuilt by folding
+  the log in order (`INV-5`).
+
+The hosted directory at `directory.gaugewright.com` runs the same rules. Both
+verify signatures with the same library, `gaugedesk-directory-protocol` from
+the GaugeDesk platform.
 
 ## Running it
 
