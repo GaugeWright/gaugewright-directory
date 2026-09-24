@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:c360371c5272a79b065c5cc445217d1f8cdd74d636a9bc541dcbadfa69f48adf -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:90adabeb7dd660d21263b3d67db63ce78d9d7ea300f4137ba3483ad2bb391969 -->
 
 ## Working in a GaugeWright repository
 
@@ -273,7 +273,7 @@ Every record declares its class. A **founder decision** introduces a plan or
 direction not already settled, makes an architectural or design choice with
 serious tradeoffs, touches scope, money, legal posture, a customer commitment,
 or governance, or reverses a decision the founder accepted; only the founder
-accepts it, and the record waits until they have. A **routine decision** is one
+decides it. A **routine decision** is one
 whose answer follows from settled policy and specifications, or is obvious and
 reversible with no serious tradeoff; its author accepts it, marks it routine,
 and writes one sentence saying why. The founder reads routine decisions when
@@ -282,6 +282,16 @@ founder decision — but doubt means a real tradeoff you cannot resolve from wha
 is settled, not the reflex to ask. The founder's time was going to "yes,
 approve" on records they had not read because the answer was obvious, and a
 gate that is waved through is not a gate (GaugeWright DR-0130).
+
+The founder decides in the conversation, not by reading the record. When they
+have chosen the direction in the conversation that produced the work, that
+choice is the acceptance. Write the record, mark it accepted by the founder
+with a rationale saying what they chose, and land it in one commit. Never ask
+the founder to review or accept a record. If a founder-class question is still
+open, ask the question itself in the conversation, with the choice and its
+tradeoff in plain terms, and record the answer. Even after DR-0130 the founder
+was still accepting founder-class records without reading them, because all of
+their alignment happens in the chat (GaugeWright DR-0136).
 
 A record's text may be revised in place to correct or clarify it. A record is
 never deleted or renumbered, and a reversal is a new record or a status change
