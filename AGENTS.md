@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:7a825915488e2478332d3ae570925500cf2ffa840625824653cd9bdb12fe765b -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:6df876a237d9aa5b52a79ddc05a65d0e6827894b7c1a01cd6e6406df60ca8105 -->
 
 ## Working in a GaugeWright repository
 
@@ -141,14 +141,27 @@ not ask first. A small fix is not that: for a UI or UX tweak, a little
 correction, or one step in a chain of related changes, commit on your branch
 and stop — the founder says when accumulated commits become a pull request.
 
-Do not run the whole bar locally first. The fleet answers a push on a machine
-built for it, warm, in a couple of minutes, and it is the verdict that counts;
-running the same bar on the workstation beforehand does the work twice and does
-the second copy on the machine somebody is trying to use. Measured on
+Do not run the whole bar locally first. The fleet answers a pull request's head
+or a default-branch push on a machine built for it, warm, and its verdict is
+the one that counts. Running the same bar on the workstation beforehand does
+the work twice and puts the second copy on the machine somebody is trying to
+use. Measured on
 2026-09-22: a dozen sessions on one laptop, each running a full bar before
 pushing, took the load average past 140, and two separate failures were
 misdiagnosed that day because a wall-clock number read under that load
 described the machine rather than the change.
+
+Before a pull request, an agent in a materialized workspace can request an
+early fleet answer for a staged snapshot: run
+`node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/agent-check.mjs" --checkout=. --job=bar`
+from the repository under test. Stage exactly what should be checked first;
+the command refuses to omit unstaged or untracked files unless
+`--allow-excluded` acknowledges them. It leaves HEAD, the index, and the
+working tree in place, waits for the answer, and removes the temporary remote
+ref. The result is under `gaugewright/agent/bar`: useful feedback, never a
+required gate verdict. The repository manifest lists which jobs may be asked
+for this way; WhippleScript also allows `--job=new-refusals`. A normal pull
+request still receives its own required checks.
 
 Run locally what you are actually working on — the section you changed, the
 test you are iterating on, `scripts/section.sh <name>` — which is fast and
