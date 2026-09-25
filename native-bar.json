@@ -1,0 +1,38 @@
+{
+  "bins": {
+    "gaugewright-directory": "gaugewright-directory//:rust-bin-gaugewright-directory"
+  },
+  "feature_checks": [],
+  "lint": [
+    "gaugewright-directory//:rust-bin-gaugewright-directory[clippy.txt]",
+    "gaugewright-directory//:rust-gaugewright-directory[clippy.txt]",
+    "gaugewright-directory//:rust-test-gaugewright-directory-lib--build[clippy.txt]",
+    "gaugewright-directory//:rust-test-gaugewright-directory-bin-gaugewright-directory--build[clippy.txt]",
+    "gaugewright-directory//:rust-test-gaugewright-directory-directory_live--build[clippy.txt]",
+    "gaugewright-directory//:rust-test-gaugewright-directory-directory_wiring--build[clippy.txt]"
+  ],
+  "test_runs": [
+    "gaugewright-directory//:rust-test-gaugewright-directory-lib--build-run",
+    "gaugewright-directory//:rust-test-gaugewright-directory-bin-gaugewright-directory--build-run",
+    "gaugewright-directory//:rust-test-gaugewright-directory-directory_live--build-run",
+    "gaugewright-directory//:rust-test-gaugewright-directory-directory_wiring--build-run"
+  ],
+  "tests": [
+    {
+      "cwd": ".",
+      "target": "gaugewright-directory//:rust-test-gaugewright-directory-lib--build"
+    },
+    {
+      "cwd": ".",
+      "target": "gaugewright-directory//:rust-test-gaugewright-directory-bin-gaugewright-directory--build"
+    },
+    {
+      "cwd": ".",
+      "target": "gaugewright-directory//:rust-test-gaugewright-directory-directory_live--build"
+    },
+    {
+      "cwd": ".",
+      "target": "gaugewright-directory//:rust-test-gaugewright-directory-directory_wiring--build"
+    }
+  ]
+}

@@ -54,6 +54,9 @@ case "${1:-}" in
   formatting)        cargo fmt --all --check ;;
   lints)             cargo clippy --all-targets -- -D warnings ;;
   tests)             cargo test ;;
+  # The native targets are rendered from Cargo.toml (GaugeWright BUILD.md
+  # stages 5 and 6); this fails when the rendering has drifted from it.
+  native-crates)     python3 scripts/buckify-crates.py --check ;;
   # The theme check is inside the branch rather than after it because it reads
   # the built site: with no `site/` it fails for want of a build that did not
   # run, and with a stale one it answers about an older tree. Its other half —

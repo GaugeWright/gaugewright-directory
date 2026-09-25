@@ -1,0 +1,3 @@
+# Windows only: never compiled for a Linux or macOS host, where the native
+# targets build.
+buildscript.run = false
