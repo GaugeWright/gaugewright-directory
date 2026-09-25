@@ -15,6 +15,7 @@
 # The command for each is stated once, in scripts/section.sh.
 load("@gaugewright//tools/buck:artifact.bzl", "carries")
 load("@gaugewright//tools/buck:check.bzl", "check_section", "check_unit", "check_world")
+load("//:native-crates.bzl", "native_crates")
 
 # The cargo workspace, twice: what clippy says about it and what its tests say.
 # Both read the same unit — the manifest, the lockfile, the toolchain pin and
@@ -55,6 +56,17 @@ check_unit(
     srcs = CARGO_UNIT,
 )
 
+# Whether the native targets are still what Cargo.toml renders to. The renderer
+# reads every first-party crate's manifest and sources, the platform's among
+# them, and the third-party manifest and lockfile reindeer was run on.
+check_section(
+    name = "native-crates",
+    checkout = "gaugewright-directory",
+    command = "scripts/section.sh native-crates",
+    srcs = CARGO_UNIT + ["scripts/buckify-crates.py", "native-crates.bzl", "native-bar.json",
+        "//third-party:BUCK", "//third-party:Cargo.lock", "//third-party:Cargo.toml"],
+)
+
 # Reads the live RustSec database, so it is never answered from a cache.
 check_world(
     name = "advisories",
@@ -72,7 +84,9 @@ check_section(
     # The coverage claim is read out of this BUCK file itself; the read sandbox
     # (GaugeWright FLEET.md stage 0) found it undeclared on 2026-09-22.
     srcs = ["BUCK", "Cargo.toml", "Cargo.lock", "scripts/check.sh", "scripts/section.sh", "scripts/check-build-coverage.mjs"]
-        + glob([".github/workflows/*.yml", "scripts/build-coverage.policy.json"]),
+        + glob([".github/workflows/*.yml", "scripts/build-coverage.policy.json"])
+        # third-party/ is its own package, so its files are declared by reference.
+        + ["//third-party:BUCK", "//third-party:Cargo.lock", "//third-party:Cargo.toml"],
 )
 
 check_section(
@@ -137,3 +151,8 @@ carries(
     renderer = "node tools/agent-guide.mjs --write, in the GaugeWright repository",
     srcs = ["scripts/check-agent-guide.mjs"],
 )
+
+# The crate and the platform crates it takes by path, as native targets,
+# rendered from Cargo.toml by scripts/buckify-crates.py (GaugeWright BUILD.md
+# stages 5 and 6).
+native_crates()
