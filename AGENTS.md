@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b3829d35af65e324d0eec5b0d1f833a2062e0244c88990fdbaa6cbc77369ba46 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:43c61f1c92ce081b02eb3f3a56f55d90046dd0ddaf86049618b0d5d12af4b01e -->
 
 ## Working in a GaugeWright repository
 
@@ -175,22 +175,28 @@ through a door that has no allocator.
 The gate is the company's own fleet, not the forge (DR-0131). It posts a
 commit status per verdict, and a repository has more than one.
 `gaugewright/bar` is its `scripts/check.sh required`. Each entry in its
-manifest `gate.jobs` adds one more under its own context, and the entry's
-`every` says which of two kinds it is: a job without `every` is per-change and
-posts on a pull request head, like gaugedesk-src's `gaugewright/bar/macos` or
-whipplescript-src's `gaugewright/bar/windows`; a job with `every` is a cadence
-check due on the default branch and never posts on a pull request at all, like
-the GaugeWright repository's seven 24h and 7d contexts.
-`gaugewright/host/<name>` is a third kind and is not about any change: a host's
+manifest `gate.jobs` adds one more under its own context, and the entry says
+which of three kinds it is. A job with neither `every` nor `pulls` is
+per-change and posts on a pull request head, like whipplescript-src's
+`gaugewright/bar/new-refusals`. A job with `pulls: false` is per-change on the
+default branch only: it answers every head `main` reaches and never posts on a
+pull request, like the platform compiles, gaugedesk-src's
+`gaugewright/bar/macos` and whipplescript-src's `gaugewright/bar/windows`
+(GaugeWright DR-0146). A red there names the commit that broke that platform
+and is repaired like any red `main`, before the release lane, which builds the
+platform again, would ship it. A job with `every` is a cadence check due on
+the default branch and never posts on a pull request at all, like the
+GaugeWright repository's seven 24h and 7d contexts.
+`gaugewright/host/<name>` is not a job and is not about any change: a host's
 own proof that it can run work, which is where to look when every pull request
 from one host has gone red.
 
 So the combined `.state` is not the verdict, and it misleads in both
 directions. It covers only the contexts that have POSTED, so `success` can
 mean no more than that nothing which reported said no while a per-change job
-is still unclaimed — on 2026-09-22 gaugedesk-src#708's `bar/macos` posted
-twenty minutes after its `bar`, and merging on the combined state would have
-skipped the desktop compile. And a host proof turns it red while every bar is
+is still unclaimed — on 2026-09-22 gaugedesk-src#708's `bar/macos`, then
+owed by pull requests, posted twenty minutes after its `bar`, and merging on
+the combined state would have skipped the desktop compile. And a host proof turns it red while every bar is
 green: GaugeWright's `main` read `failure` on `gaugewright/host/winworker`,
 which had failed its own proof and stopped claiming, with `gaugewright/bar`
 green beside it. Read `gate.jobs` from `tools/vmr/manifest.json` to learn
@@ -267,8 +273,8 @@ indistinguishable from a passing gate.
 
 For the fleet's verdict the answer is the commit statuses: wait on
 `gh api repos/<owner>/<repo>/commits/<sha>/status` until every per-change
-context the change is owed — `gaugewright/bar` and each `gate.jobs` entry
-without an `every` — has posted and is terminal, and read those states from
+context the change is owed — `gaugewright/bar` and, on a pull request, each
+`gate.jobs` entry with neither `every` nor `pulls: false` — has posted and is terminal, and read those states from
 the reply, not the combined one and not a workflow list. Waiting on the
 combined state alone returns early, because a context that has not posted yet
 is not holding it back. Size the wait for the gate's
