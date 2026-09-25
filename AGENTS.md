@@ -58,13 +58,24 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:43c61f1c92ce081b02eb3f3a56f55d90046dd0ddaf86049618b0d5d12af4b01e -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:7a825915488e2478332d3ae570925500cf2ffa840625824653cd9bdb12fe765b -->
 
 ## Working in a GaugeWright repository
 
 These rules hold in every active GaugeWright repository. This section is
 generated from `tools/agent-guide/shared.md` in the `GaugeWright` repository,
 which owns it. Edit it there and re-render; a local edit fails the check.
+
+### Where to run checks
+
+The fleet is the authority for the complete repository bar. **Do not run
+`scripts/check.sh` locally while the fleet can answer the change.** Run the
+focused tests or sections needed to develop and diagnose it, then push the
+branch and read the fleet's `gaugewright/bar` verdict. If the fleet cannot
+answer this repository, diagnose that condition and use the local bar only as
+a fallback, reporting which prerequisites or platforms it could not cover.
+The command below defines the bar's contents; it is not a request to run it
+twice.
 
 ### The one check command
 
@@ -142,9 +153,7 @@ described the machine rather than the change.
 Run locally what you are actually working on — the section you changed, the
 test you are iterating on, `scripts/section.sh <name>` — which is fast and
 tells you something the fleet's verdict would tell you slower. Run the whole
-bar when you have a reason: no fleet host can answer your repository, you are
-changing the bar itself, or you are about to land something whose failure would
-be expensive to discover on `main`. The one check command has not changed and
+bar locally only when the fleet cannot answer the repository. The one check command has not changed and
 neither has what the gate runs; what changed is that a machine exists whose job
 is to run it, and yours is not it. Likely follow-up work is reason to hold whether or not you can see the
 effort it belongs to. Holding is a smaller unit of delivery, not a request for
