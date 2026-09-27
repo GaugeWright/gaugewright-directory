@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:6df876a237d9aa5b52a79ddc05a65d0e6827894b7c1a01cd6e6406df60ca8105 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:79829d7551d194d4a6897c4e7d5baf368849f336d2bac8d8e5b07ab889b99589 -->
 
 ## Working in a GaugeWright repository
 
@@ -129,6 +129,43 @@ the whole run. A hard failure trains the reflex, and a silent skip is a gate
 that has quietly stopped gating; a bar that closes by saying what it could not
 establish is neither.
 
+### Claiming work
+
+Company work is tracked in WhippleScript's tracker, in one store on the
+founder's workstation (GaugeWright DR-0139). A claim there is what stops two
+sessions doing the same work: of two agents reaching for one item, exactly one
+gets it and the other is told who holds it. Nothing else in the company does
+that for work, and a dozen sessions run at once.
+
+Before substantive work — anything that will become a pull request, and every
+repair of a red default branch — claim it. A small fix you will finish in
+minutes needs no item.
+
+```sh
+whip issue ready <repository>                  # what is free, in order
+whip issue new --tracker <repository> --title "…" --body "…"   # if it is not there
+whip issue claim <id> --actor <session> --ttl 2h
+whip issue renew <id> --actor <session> --ttl 2h   # while you are still on it
+whip issue finish <id> --summary "<pull request or commit>"
+```
+
+The queue is the repository's id as the manifest names it, and work that
+spans repositories goes in the queue of the one that owns its outcome.
+`--actor` names your session, so a refusal tells the next agent who to ask. A
+claim that someone else holds means the work is taken: do something else rather
+than race it. A claim of an issue that is not ready — blocked, deferred, already
+closed — is refused with the reason, and `whip issue why <id>` explains it; do
+not override it, which is the founder's call. If you stop before finishing,
+`whip issue note <id> "<what is left>"` and `whip issue release <id>`, so the
+next session starts from what you learned rather than from the title.
+
+The store is found through `WHIPPLESCRIPT_ITEMS_STORE`, which every shell on the
+founder's workstation sets. Where it is not set — a fleet host, another
+machine, a cloud session — there is no store you can reach, and `whip issue`
+would open a private one under the current directory whose claims nobody else
+can see. Do not run it there. Look for an open pull request as the only guard
+you have, and say in your summary that the work was not claimed.
+
 ### Landing a change
 
 Work on a branch cut from `origin/main`, in your own worktree. Use atomic
@@ -184,15 +221,17 @@ particular change should not land, and say what the reason is. A change that
 ought to have been caught before landing is evidence the gate set is short; the
 repair is the missing check, not a human reading of the diff.
 
-A RED `main` is shared, so before repairing one, look for an open pull request
-already repairing it. Several sessions run at once and each meets the same red
-gate at the same moment, so the obvious repair gets written more than once — two
-sessions independently bumped the same two advisory-flagged lockfile entries on
-2026-09-02, and the second learned it only when its rebase conflicted. The waste
-is not the duplicate branch, which is cheap to close; it is that the second
-session spent its time believing it was unblocking work already unblocked. This
-is the collision the decision-record allocator exists to prevent, arriving
-through a door that has no allocator.
+A RED `main` is shared, so its repair is claimed like any other work. Several
+sessions run at once and each meets the same red gate at the same moment, so the
+obvious repair gets written more than once — two sessions independently bumped
+the same two advisory-flagged lockfile entries on 2026-09-02, and the second
+learned it only when its rebase conflicted. The waste is not the duplicate
+branch, which is cheap to close; it is that the second session spent its time
+believing it was unblocking work already unblocked. Looking for an open pull
+request did not prevent it, because both sessions looked before either had
+opened one. So before repairing, find the item — `whip issue list --tracker
+<repository>`, titled `red main: <repository>` — and claim it, filing it if it
+is absent. A refused claim means someone is already on it.
 
 The gate is the company's own fleet, not the forge (DR-0131). It posts a
 commit status per verdict, and a repository has more than one.
