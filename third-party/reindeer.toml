@@ -1,0 +1,30 @@
+# Third-party crates as native Buck2 targets (GaugeWright BUILD.md stage 5).
+# Nothing is vendored: each crate is an http_archive of its crates.io tarball,
+# pinned by sha256 from Cargo.lock, so the sources are content-addressed and
+# nothing large is committed.
+vendor = false
+
+# The CARGO_PKG_* and CARGO_MANIFEST_DIR variables cargo sets for every
+# compile and build script. Crates read them with env!(), and without them a
+# third of the graph fails at compile time.
+cargo_env = true
+
+[buck]
+file_name = "BUCK"
+# Front matter replaces reindeer's default, so it carries the two loads the
+# default wrote. It also declares this file, the manifest it is generated from and its lockfile, so
+# the root package's checks can name them (a package declares only its own
+# files) -- with the company's source_file rather than the prelude's
+# export_file, whose platform transition a check target cannot satisfy.
+buckfile_imports = """
+load("@prelude//rust:cargo_buildscript.bzl", "buildscript_run")
+load("@prelude//rust:cargo_package.bzl", "cargo")
+
+load("@gaugewright//tools/buck:check.bzl", "source_file")
+
+[source_file(name = f, src = f, visibility = ["PUBLIC"]) for f in ["BUCK", "Cargo.lock", "Cargo.toml"]]
+"""
+# Setting the front matter also turns off reindeer's switch to the cargo
+# wrappers, which set each crate's CARGO_* environment; name them explicitly.
+rust_library = "cargo.rust_library"
+rust_binary = "cargo.rust_binary"

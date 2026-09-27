@@ -44,7 +44,15 @@ path = "src/main.rs"
 # workspace. The platform submodule is its own (nested) workspace, so it must
 # be excluded here.
 [workspace]
-exclude = ["platform"]
+# Reindeer's input for the native third-party targets is not a crate either.
+exclude = ["platform", "third-party"]
+
+# How this workspace is rendered as native Buck2 targets (GaugeWright BUILD.md
+# stages 5 and 6): the cell and repository it is. Read by
+# scripts/buckify-crates.py, which the GaugeWright repository renders here.
+[workspace.metadata.native]
+cell = "gaugewright-directory"
+checkout = "gaugewright-directory"
 
 # Dependencies are built without debug info. They dominate target/debug/deps,
 # and debug info measured ~78% of binary size (whipplescript, 2026-07-25).

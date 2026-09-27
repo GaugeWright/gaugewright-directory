@@ -92,11 +92,30 @@ section product-contracts
 echo "== formatting =="
 section formatting
 
+echo "== native targets =="
+section native-crates
+
+# Where this checkout is a cell and the host is Linux with bubblewrap -- every
+# Linux fleet host that answers this bar -- the lints and the tests run on the
+# native targets instead (GaugeWright BUILD.md stages 5 and 6). Clippy runs on
+# each target and any report with anything in it fails the build, which is what
+# `-D warnings` makes of it; each test binary runs as its own action over only
+# the files the crate declares, so a binary whose code and data did not change
+# is served its recorded pass. Anywhere else -- a Mac, a worktree outside a
+# workspace -- the cargo lines run, and assert the same set.
+native=""
+if [ -n "$via_buck2" ] && [ "$(uname -s)" = Linux ] && command -v bwrap >/dev/null 2>&1; then
+  native=1
+fi
+native_section() {
+  buck2 build "//:$1" -c "green_bar.run=$GREEN_BAR_RUN" -c "green_bar.prerequisites=$prerequisites"
+}
+
 echo "== lints =="
-section lints
+if [ -n "$native" ]; then native_section native-lints; else section lints; fi
 
 echo "== tests =="
-section tests
+if [ -n "$native" ]; then native_section native-tests; else section tests; fi
 
 # The docs build is the only thing that reads mkdocs.yml, the theme override
 # under overrides/, and assets/brand.css. Nothing here read them until now: the

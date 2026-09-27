@@ -1,0 +1,12 @@
+{
+  "// why this file exists": [
+    "third-party/Cargo.lock is reindeer's input for the native third-party",
+    "targets (GaugeWright BUILD.md stages 5 and 6), not a second dependency",
+    "graph: the native-crates section (scripts/buckify-crates.py --check) fails",
+    "unless it pins exactly the registry and git packages Cargo.lock pins, so",
+    "the audit of Cargo.lock is the audit of it."
+  ],
+  "exceptions": {
+    "rust-audit:third-party/Cargo.lock": "pins exactly the packages Cargo.lock pins, enforced by the native-crates section (scripts/buckify-crates.py --check), so auditing Cargo.lock audits it"
+  }
+}

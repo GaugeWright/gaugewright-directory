@@ -1,0 +1,8 @@
+# Run the build script as cargo does. The prelude runner omits three variables
+# cargo gives every build script; these are cargo's development profile. And
+# cargo always honours a script's link directives, where reindeer does only
+# when told: without them ring's compiled C never reaches the linker.
+[buildscript.run]
+env = { OPT_LEVEL = "0", DEBUG = "true", PROFILE = "debug" }
+rustc_link_lib = true
+rustc_link_search = true
