@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:f982582f7e1800c81cab3587859ab3824f8ad304910032a3cd853276ac065839 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:bf2bb57f746944ea00ba5d58c31ed078dd56bb823c27b65a08144161d6c15e13 -->
 
 ## Working in a GaugeWright repository
 
@@ -310,6 +310,24 @@ node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-log.mjs" <targ
 It reaches the host over the ssh configuration the workstation already holds
 and reads the transcript from the host's own server, so it needs no credential
 of its own. `--context=` names a job's status other than `gaugewright/bar`.
+
+Whether the fleet itself is well is a different question from any verdict.
+It asks whether every host is still sampling, has room on its disk, passed its
+newest proof, and whether the forge budget they share is above its floor.
+GaugeWright's `fleet-health` job answers it every fifteen minutes. Do not wait
+for that when you need the answer now: after a change that restarts the
+bridge, or when a repository's work sits unclaimed and you cannot tell a
+stopped host from a long queue. Ask from the founder's workstation:
+
+```sh
+node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-watch.mjs"
+```
+
+It reads the same records the job reads, in a few seconds. It reaches a host
+the workstation cannot route to through the same ssh configuration, and it
+posts nothing. On 2026-09-28 a repository went four hours with no status while
+the fleet was healthy and busy elsewhere, and confirming the hosts came back
+after the bridge change that repaired it meant waiting on the job.
 
 GitHub Actions runs no gate. A workflow that cannot start is noise, not a
 verdict; do not dispatch, rerun, enable or disable one, and do not read its
