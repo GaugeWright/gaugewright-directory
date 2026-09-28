@@ -630,6 +630,7 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
@@ -694,6 +695,7 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
@@ -762,6 +764,7 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
@@ -830,6 +833,7 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
