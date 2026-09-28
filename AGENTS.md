@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:79829d7551d194d4a6897c4e7d5baf368849f336d2bac8d8e5b07ab889b99589 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:f982582f7e1800c81cab3587859ab3824f8ad304910032a3cd853276ac065839 -->
 
 ## Working in a GaugeWright repository
 
@@ -296,6 +296,20 @@ It is a link to a machine's disk and not an archive: the host that wrote it
 serves it, transcripts are pruned, and a host that is off serves none. A
 verdict with no link is a host that advertises none, which is what every
 verdict carried before this.
+
+The public names in those links sit behind Cloudflare Access, which a browser
+signs into and an agent cannot, so on the founder's workstation read one
+through the GaugeWright reader rather than giving up on it or reproducing the
+bar blind:
+
+```sh
+node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-log.mjs" <repository> <commit|#pull> --out=<file>
+node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-log.mjs" <target_url> --out=<file>
+```
+
+It reaches the host over the ssh configuration the workstation already holds
+and reads the transcript from the host's own server, so it needs no credential
+of its own. `--context=` names a job's status other than `gaugewright/bar`.
 
 GitHub Actions runs no gate. A workflow that cannot start is noise, not a
 verdict; do not dispatch, rerun, enable or disable one, and do not read its
