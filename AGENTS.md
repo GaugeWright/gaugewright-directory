@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:f982582f7e1800c81cab3587859ab3824f8ad304910032a3cd853276ac065839 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:e743f11eafbcd12143fef79469409bb75ecc97230d4c6a9bbc60329a37625de9 -->
 
 ## Working in a GaugeWright repository
 
@@ -311,6 +311,24 @@ It reaches the host over the ssh configuration the workstation already holds
 and reads the transcript from the host's own server, so it needs no credential
 of its own. `--context=` names a job's status other than `gaugewright/bar`.
 
+Whether the fleet itself is well is a different question from any verdict.
+It asks whether every host is still sampling, has room on its disk, passed its
+newest proof, and whether the forge budget they share is above its floor.
+GaugeWright's `fleet-health` job answers it every fifteen minutes. Do not wait
+for that when you need the answer now: after a change that restarts the
+bridge, or when a repository's work sits unclaimed and you cannot tell a
+stopped host from a long queue. Ask from the founder's workstation:
+
+```sh
+node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-watch.mjs"
+```
+
+It reads the same records the job reads, in a few seconds. It reaches a host
+the workstation cannot route to through the same ssh configuration, and it
+posts nothing. On 2026-09-28 a repository went four hours with no status while
+the fleet was healthy and busy elsewhere, and confirming the hosts came back
+after the bridge change that repaired it meant waiting on the job.
+
 GitHub Actions runs no gate. A workflow that cannot start is noise, not a
 verdict; do not dispatch, rerun, enable or disable one, and do not read its
 absence as a passing gate. The lanes that remain there — release, deploy,
@@ -416,6 +434,33 @@ number, because each repository runs its own sequence.
 Language toolchain versions are pinned in-repo — `rust-toolchain.toml`,
 `.node-version` — and the automated gate derives its versions from those files.
 Change the pin in the file rather than in a workflow.
+
+### Versioning
+
+A product release is numbered `X.Y.Z`, and the number means what Cargo already
+assumes (GaugeWright DR-0170). Before 1.0, raise the middle number for a release
+that breaks anything a user or consumer relies on — stored data, a client's
+protocol with a Home or the Hub, a command line, configuration, a published
+crate's or package's interface — and the last number for everything else. A
+break numbered in the last place reaches every crates.io dependent without any
+of them choosing it. Going to 1.0 is the founder's decision.
+
+A product has one version, declared once in its trunk's workspace manifest.
+Every crate, package, bundle and mobile app inherits it or is generated from
+it, and the bar checks that they agree; a store's build number is a separate
+integer. Change the version only in the commit that cuts the release. Tag
+`vX.Y.Z` in the trunk at the source commit and in the mirror at the publishing
+commit. Never move or delete a pushed tag; repair a failed cut under the next
+number. The cut refuses without a `## [X.Y.Z] — YYYY-MM-DD` entry in
+`CHANGELOG.md` that says what changed and, for a breaking release, what a user
+or dependent must do.
+
+A repository that deploys continuously has no version: its commit identifies
+what it serves, and a version field a toolchain demands is `0.0.0` and
+unpublished. A contract, schema or file format you own carries a whole-number
+`vN` that rises only for a change a reader of the previous version could not
+accept. A format someone else owns keeps their scheme, and an identifier of
+ours in another form converges when it next changes, not in a sweep.
 
 ### Worktrees and build output
 
