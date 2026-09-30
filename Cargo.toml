@@ -63,10 +63,12 @@ debug = false
 # The platform takes WhippleScript from a pinned git revision rather than the
 # crates.io release, through its own [patch.crates-io]. Cargo applies a patch
 # only from the top-level workspace, which here is this package, so the same
-# block is repeated at the same revision. Advancing the `platform` pin means
-# copying this block from platform/Cargo.toml again.
+# four patches stay at one revision. Override the platform's historical pin
+# with the compatible 0.5.6 release dependency repair (Wasmtime 48.0.3).
+# The platform gitlink stays unchanged; re-audit the resolved graph before
+# replacing these patches during a future platform update.
 [patch.crates-io]
-whipplescript = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-kernel = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-parser = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-store = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
+whipplescript = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-kernel = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-parser = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-store = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }

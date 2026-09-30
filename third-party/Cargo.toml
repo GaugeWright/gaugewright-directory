@@ -61,7 +61,7 @@ wasm-bindgen-futures = { version = "=0.4.76" }
 web-sys = { version = "=0.3.103", features = ["BinaryType", "CloseEvent", "ErrorEvent", "MessageEvent", "Request", "RequestInit", "Response", "WebSocket", "Window"] }
 
 [patch.crates-io]
-whipplescript = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-kernel = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-parser = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
-whipplescript-store = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "d77dde542dd6f2c790ce29d4a94134915b06f924" }
+whipplescript = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-kernel = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-parser = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
+whipplescript-store = { git = "https://github.com/GaugeWright/whipplescript.git", rev = "8a7746bf66e9b5f793c4aff4108e8a55f696672b" }
