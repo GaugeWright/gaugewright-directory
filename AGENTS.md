@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:e743f11eafbcd12143fef79469409bb75ecc97230d4c6a9bbc60329a37625de9 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:62ecb049594f9afed7a1509ae357dfbbf85fd04ad5954a25f5401c2d8ac858ad -->
 
 ## Working in a GaugeWright repository
 
@@ -273,7 +273,9 @@ means a host has claimed the commit and is running it; `error` means the gate
 did not answer — the bar could not be run or exceeded its ceiling — which is a
 different fact from `failure` and is never waved through as either. A red pull
 request is answered again when `main` moves, so a fix on `main` reaches it at
-the next sweep without a rebase. A verdict that
+the next sweep without a rebase. A commit is answered once, so to have an
+unchanged tree answered again, give it a new commit
+(`git commit --amend --no-edit --date=now`). A verdict that
 arrives in seconds is the fleet's action cache answering for sections whose
 inputs the change did not touch, and its transcript is the original run's.
 
@@ -287,6 +289,25 @@ were merged on greens taken against bases three days and six weeks old before
 that rule existed. Until a re-answer arrives, the description says which
 `main` the verdict was computed against: if that is not the current one, what
 the fleet approved is not what you are about to merge.
+
+If you merge a green on an older base anyway, check what `main`'s new commits
+*test* as well as what they touch. A test that enumerates a shape — a bundled
+vocabulary, a registry, a route manifest, a pinned count — collides with a
+change that extends that shape while sharing no file with it. whipplescript-src
+#633 was green 38 commits behind, touched nothing #654 had touched, and turned
+`main` red on #654's new inventory test. When one does, rebase and take a
+fresh verdict.
+
+A red on a `carries-*` section is about the GaugeWright repository, not your
+change. It means a file GaugeWright renders into this repository — this guide,
+the documentation theme, the brand tokens — has moved there and not yet here,
+so every pull request and `main` go red on it together. GaugeWright's
+`carried-artifacts` job opens and merges a `carried-artifacts` pull request
+here within about four hours; do not re-render by hand, and do not repair it
+in your branch. Once it lands, your red is answered again with `main`. If that
+pull request is itself held red by something unrelated, rebase your branch
+onto `origin/carried-artifacts` and land it with a merge commit rather than a
+squash, which lands both; say so on both pull requests.
 
 The status links to that transcript: `target_url` on it is the whole bar as
 the host that ran it saw it, served by that host over the fleet's network.
@@ -334,6 +355,20 @@ verdict; do not dispatch, rerun, enable or disable one, and do not read its
 absence as a passing gate. The lanes that remain there — release, deploy,
 canary, scheduled — are not gates and are being rehomed on the fleet.
 
+### Routine operations
+
+An operational action whose right answer is obvious and reversible is taken,
+then reported with what it cost. That covers restarting a service, clearing a
+wedged cell or daemon, re-running a job the host dropped, and restoring a
+checkout. Do not hand the founder a command to run, and do not ask whether to
+run it: they have no information the session lacks, and the fleet stays down
+for the length of the round trip. The founder said so on 2026-09-24, after
+being offered a `systemctl start` to run by hand. Ask about what the founder
+owns: what a release ships, what the product promises, spending money, and
+anything that widens a secret boundary. System and network configuration —
+DNS, resolvers, firewalls — stays theirs; name the fix rather than applying
+it.
+
 ### Stale documentation
 
 When you find documentation that no longer describes what is true — a README,
@@ -352,6 +387,23 @@ is right, that is a question, not a stale page: ask it, plainly, and correct
 whichever side the answer says is wrong. The founder was being asked, over and
 over, whether to update documentation that was plainly out of date, and the
 answer was always yes.
+
+### What you learn
+
+What you learn while working — a trap and the command that avoids it, where
+something lives, how a host is reached, why a red was not about the change — is
+written into the repository that owns it, in the change that met it. A rule
+goes in the guide or the shared source above. How to use a script goes in its
+header. Policy goes in a specification, open work in the tracker, and a
+diagnosed fleet incident in GaugeWright's incident log. Leave out what the
+code, the history or the tracker already says, because a lesson written twice
+becomes two lessons that disagree.
+
+No agent keeps private notes. The founder works with more than one agent
+tool, and a lesson one of them keeps to itself is one the others pay for
+again. Claude Code's auto memory is not used: do not write to
+`~/.claude/projects/*/memory/`, and do not read anything left there as
+current. Its notes were folded into the owning repositories on 2026-09-29.
 
 ### Waiting on a gate
 
@@ -411,6 +463,15 @@ tradeoff in plain terms, and record the answer. Even after DR-0130 the founder
 was still accepting founder-class records without reading them, because all of
 their alignment happens in the chat (GaugeWright DR-0136).
 
+Make that question answerable from the message alone: what would change, what
+it costs, what it buys, your recommendation, and a yes or no. Ask one question
+per decision. A record's number goes last, as a label, never in place of its
+substance — the founder does not read the records and will not know what one
+says ("do you still want DR-0110?" had to be asked again). Before proposing
+something in a direction that looks settled, search the decision records for
+one that was rejected: its rationale often names the alternative the founder
+chose instead.
+
 A record's text may be revised in place to correct or clarify it. A record is
 never deleted or renumbered, and a reversal is a new record or a status change
 on the old one, never its removal.
@@ -428,6 +489,20 @@ duplicate — the failure that issued one number to two decisions in three
 repositories in one month. A merged number is never reassigned. A citation
 that crosses a repository boundary names the owning repository beside the
 number, because each repository runs its own sequence.
+
+When `main` is issuing numbers quickly, the number you allocate can be taken
+while your bar runs; gaugedesk-src lost one five times in a day that way. Fetch
+and check immediately before pushing, and when `main` is busy allocate with
+headroom — a few past the next number — since the check refuses only a number
+at or below the base's highest and a gap is harmless; say so in the commit.
+Drafts landed together all get the same next number from the allocator, so
+number the later ones by hand past those open pull requests already hold.
+Taking a number back is a substitution of a number that now belongs to someone
+else's merged decision, and a blanket replace rewrites that decision's
+citations in every file your branch also touched. Rewrite only the lines your
+branch added — list the files it changed and grep `origin/main`'s version of
+each for the contested number first — and rewrite your unpushed commit
+messages too.
 
 ### Toolchains
 
@@ -485,6 +560,98 @@ Several worktree paths there means stale cache; `cargo clean -p <crate>` clears
 it. The npm equivalent is real too: a symlinked `node_modules` silently
 typechecks the main checkout, so re-point per-worktree links.
 
+A worktree nested inside another checkout — Claude Code puts its own under
+`<checkout>/.claude/worktrees/` — lets cargo walk up out of a workspace that
+excludes a directory and into the enclosing checkout's `Cargo.toml`, so a check
+like `native-crates` fails there with "current package believes it's in a
+workspace when it's not". Run it from a worktree under `~/code/.worktrees/`.
+Remove only the worktrees you created, by exact path and never by pattern: a
+cleanup glob once removed two other sessions' worktrees with their uncommitted
+edits.
+
+### Declaring what a check reads
+
+Every section of a bar is a Buck2 target whose `srcs` say what it reads. Its
+verdict is keyed on those inputs and nothing else. On the fleet's Linux hosts,
+a repository whose manifest entry sets `gate.sandbox` runs it in a read
+sandbox where an undeclared file does not exist. So `srcs` must cover
+everything the section's *command* reads, not only what its question is about:
+`cargo metadata` opens every member's crate roots, and `rust-toolchain.toml`
+decides which compiler answers. A Mac has no sandbox, so a section that passes
+on the workstation can still fail on the fleet.
+
+- `glob(["**/*"])` never matches a dotfile and never enters a dot-directory.
+  Name `.gitignore`, `.github/**`, `.cargo/**` and a fixture's `.buckconfig`
+  outright, and name a fixture's new dotfile in the same commit that adds it.
+- A glob stops at a package boundary. A subdirectory with its own `BUCK` —
+  a submodule that carries one — matches nothing, silently. Prove a
+  declaration with `buck2 uquery "inputs(<target>)"`: a nonzero count for the
+  path is the only evidence that it declares anything.
+- The sandbox reports the first undeclared read and says nothing about the
+  second, so budget several passes. A failing step prints what the sandbox
+  bound, what it noticed and withheld, and a command that re-enters it; read
+  that first. An EROFS from a build script is a write, not a read.
+- A section that has only ever been answered from the cache has not been shown
+  to work. When a section is new, newly moved into the graph, or has only
+  skipped on the hosts that ran it, make it run once — change one of its
+  `srcs`, or run its command in the cell — before believing it. When a red
+  seems caused by an unrelated change, check first whether that change only
+  invalidated a cache key.
+- A cell's own `.buckconfig` must ignore its build output as `**/target/**`.
+  The ignore is per cell, it is read only when a daemon starts, and macOS never
+  shows the problem. Without it, cargo's writes flood the file watcher and a
+  parallel section fails with "The transaction was cancelled".
+- To test a change to what a section sees, `buck2 kill` and build with
+  `--no-remote-cache`. The daemon otherwise answers from memory and the cache
+  from anyone's run; a different `instance_name` isolates nothing.
+- Where Rust builds natively (`scripts/buckify-crates.py` is present), the
+  rendering is part of the source. Re-render after any change to a
+  `Cargo.toml`, `Cargo.lock` or submodule pin, and again after every rebase,
+  because a clean merge of two renderings still leaves stale hashes. A native
+  test sees only the files its crate declares in
+  `[package.metadata.native-tests] data`, and a path a test builds with
+  `.join(..)` at run time is invisible to the renderer, so declare that
+  directory. `include!(concat!(env!("CARGO_MANIFEST_DIR"), …))` breaks under
+  Buck2; write the path relative to the file. A new build script needs a
+  reindeer fixup, and a fixup's opt-level must equal the top-level workspace's
+  `[profile.dev.package.*]`.
+
+### The founder's workstation
+
+An agent's shell there is zsh, and it may not be a login shell. When
+`command -v node cargo` finds nothing, the profile did not run:
+
+```sh
+export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
+eval "$(/opt/homebrew/bin/fnm env --shell bash)"
+fnm use    # inside the checkout; reads .node-version
+```
+
+zsh does not word-split an unquoted parameter, so `for x in $list` runs once
+over the whole string. A status wait written that way never matches its
+contexts and waits forever on a green gate; that held a release two days. Write
+any loop over a list to a file and run it with `/opt/homebrew/bin/bash`, over
+an array. Quote globs, because zsh errors on one that matches nothing. Never
+`pgrep -f` or `pkill -f` a pattern that also appears in your own command line —
+write `[n]ode tools/gate.mjs` — or the wait blocks on itself and the kill takes
+your session.
+
+`/bin/bash` is 3.2 and Homebrew's is 5.3, and a bare `bash` may be either, so
+run every shell test under both. Three 3.2 behaviours make a test green while
+it checks nothing. `set -e` does not fire on a failing `[[ … ]]`, so give each
+assertion its own `|| { echo …; exit 1; }`. An EXIT trap sees `$?` as 0 after
+an abort, so set `completed=1` on the last line and have the trap fail when it
+is unset. A `case` inside `$( … )` is a parse error, so move it into a
+function. Prove a test fails by breaking what it tests, not by reading it.
+
+macOS deletes files under `/private/tmp` that have not been read for three
+days, a session scratchpad included. Anything that must outlast a session —
+a toolchain, a probe, a virtualenv — goes under `~/.local/opt/`. macOS has no
+`setsid`. To run a long job detached, write a launcher that sets the PATH,
+redirects its transcript to a file and appends its exit status. Start it with
+`nohup <launcher> >/dev/null 2>&1 </dev/null & disown`, and wait on the exit
+line.
+
 ### Naming
 
 Product repositories name their crates, binaries, environment variables, and
@@ -518,5 +685,16 @@ Secrets, tokens, passwords, private keys, tax identifiers, bank details,
 signatures, private legal documents, customer-confidential material, or
 personal data. Tracked automation configuration may carry variable names,
 project identifiers, and paths — never resolved secret values.
+
+Nor print one. A value that reaches an agent's transcript has left the
+company's custody: it sits unencrypted in the tool's session log and was sent
+to a model as context. Nothing about learning a secret's name requires reading
+its value. `infisical secrets` prints every value at a path, with or without
+`--plain`; on 2026-09-22 it put the Apple signing bundle and the updater key
+in a transcript and forced their revocation. Give a process its secrets with
+`infisical run … -- <command>`, test for presence under it with
+`sh -c '[ -n "$NAME" ] && echo SET'`, and read names from the consuming code,
+`gh secret list`, or a provider's metadata. Never read or `cat` a credential
+file on a host to see what is in it; list it by name.
 
 <!-- END GAUGEWRIGHT SHARED AGENT GUIDE -->
