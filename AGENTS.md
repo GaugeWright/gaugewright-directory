@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:7d715a63319cf9b04913f96b7306fdcba62050388ed98904a75b68705ef30a65 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:57e7b5c79d6bf2aa0ff147118ce900d60a1089d3566aa5383e28de63010c68e4 -->
 
 ## Working in a GaugeWright repository
 
@@ -323,10 +323,14 @@ serves it, transcripts are pruned, and a host that is off serves none. A
 verdict with no link is a host that advertises none, which is what every
 verdict carried before this.
 
-The public names in those links sit behind Cloudflare Access, which a browser
-signs into and an agent cannot, so on the founder's workstation read one
-through the GaugeWright reader rather than giving up on it or reproducing the
-bar blind:
+The public names in those links sit behind Cloudflare Access. Never run
+`cloudflared access` against one, nor ssh to a host through a `.cf` alias:
+each opens an Access sign-in in the founder's browser, once per hostname and
+again whenever its 24-hour session lapses. Between 2026-09-25 and 2026-10-01
+agents read transcripts with `cloudflared access curl` thirty-four times, and
+the founder was asked to approve sign-ins they had not started. On the
+founder's workstation read one through the GaugeWright reader instead, rather
+than giving up on it or reproducing the bar blind:
 
 ```sh
 node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-log.mjs" <repository> <commit|#pull> --out=<file>
@@ -336,6 +340,9 @@ node "${GAUGEWRIGHT_WORKSPACE:-$HOME/code}/GaugeWright/tools/gate-log.mjs" <targ
 It reaches the host over the ssh configuration the workstation already holds
 and reads the transcript from the host's own server, so it needs no credential
 of its own. `--context=` names a job's status other than `gaugewright/bar`.
+It reads a host's records the same way, given
+`https://<host>.gaugewright.com/events.jsonl` or `measurements.jsonl`. When it
+cannot reach a host, say so; do not sign in instead.
 
 Whether the fleet itself is well is a different question from any verdict.
 It asks whether every host is still sampling, has room on its disk, passed its
