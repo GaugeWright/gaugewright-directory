@@ -65,7 +65,7 @@ graph's own, and the rendering is <dir>/native-crates.bzl and
 import hashlib, json, os, re, subprocess, sys
 from pathlib import Path
 
-SOURCE_DIGEST = "9ece926efb93dd459bb4bf9f2a1c4ef4f5223ea7e97b4523bb2da1bd37f14520"
+SOURCE_DIGEST = "b5bc21c806ab3262cbcb1ba272c0ec77ebbcea138a3f0dab010e26f2aa5a2bfd"
 PLACEHOLDER = "__EXPECTED_DIGEST__"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -82,6 +82,25 @@ OUT = WS / "native-crates.bzl"
 INDEX = WS / "native-bar.json"
 THIRD_PARTY = WS / "third-party/Cargo.toml"
 PLATFORM = "prelude//platforms:default"
+WASM_PLATFORM = "gaugewright//tools/buck:wasm32"
+
+def variant_platform(config, package):
+    """A bare target keeps the architecture its dependencies were resolved for.
+
+    Proc macros execute on the compiler host even in a WASM configuration.
+    Ordinary WASM libraries must also build for WASM when selected directly,
+    rather than depending on their module wrapper to supply a transition.
+    """
+    proc_macro = any("proc-macro" in target["kind"] for target in package["targets"])
+    host_unit = package["name"] in config.get("host_packages", set())
+    return WASM_PLATFORM if config.get("wasm") and not proc_macro and not host_unit else PLATFORM
+
+def platform_variant_key(key, platform):
+    """Do not reuse a host target for identical WASM features/dependencies.
+
+    Host keys stay stable; WASM target identity includes its architecture.
+    """
+    return json.dumps([platform, key]) if platform != PLATFORM else key
 INCLUDE = re.compile(r'include(?:_str|_bytes)?!\(\s*"([^"]+)"\s*\)|#\[path\s*=\s*"([^"]+)"\]')
 # The hosts a native build runs on, as the prelude's OS constraints name them.
 # A workspace resolves the same on both almost everywhere; where it does not,
@@ -678,6 +697,54 @@ def resolve_for(config, members, triple):
 
 WASM = ("wasm", "wasm32-unknown-unknown")
 
+def classify_wasm_units(graph, packages, members):
+    """Preserve Cargo's host domain; refuse units the package renderer cannot split.
+
+    Cargo tree collapses a package compiled twice with different domains/features.
+    The pinned Cargo unit graph identifies that case without compiling anything.
+    Host-only path packages with target-specific dependencies are also refused:
+    a graph read on this machine cannot establish their other-host selection.
+    """
+    if graph.get("version") != 1:
+        sys.exit("buckify-crates: unsupported Cargo unit-graph version")
+    by_id = {p["id"]: p for p in packages}
+    domains = {}
+    for unit in graph["units"]:
+        if unit["mode"] != "build" or not set(unit["target"]["kind"]) & {"lib", "rlib", "cdylib", "proc-macro"}:
+            continue
+        package = by_id.get(unit["pkg_id"])
+        if package is None:
+            sys.exit(f"buckify-crates: Cargo unit {unit['pkg_id']} is absent from metadata")
+        name = package["name"]
+        if name not in members:
+            continue
+        platform = unit["platform"]
+        if platform not in (None, WASM[1]):
+            sys.exit(f"buckify-crates: unsupported unit platform {platform} for {name}")
+        domain = "host" if platform is None else "wasm"
+        domains.setdefault(name, {}).setdefault(domain, set()).add(tuple(sorted(unit["features"])))
+    for name, units in domains.items():
+        if len(units) != 1 or any(len(features) != 1 for features in units.values()):
+            sys.exit(f"buckify-crates: {name} has ambiguous host/WASM units or feature sets {units}; "
+                     "separate unit rendering is required, not a guessed platform")
+        if "host" in units:
+            package = next(p for p in packages if p["name"] == name and p["source"] is None)
+            if any(d.get("target") and d["kind"] != "dev" for d in package["dependencies"]):
+                sys.exit(f"buckify-crates: host-side {name} has target-specific dependencies; "
+                         "portable host-domain rendering is not established")
+    hosts = {name for name, units in domains.items() if "host" in units}
+    features = {name: set(next(iter(next(iter(units.values()))))) for name, units in domains.items()}
+    return hosts, features
+
+def wasm_unit_domains(config, members):
+    """Read the pinned Cargo's graph only; this does not compile or run build scripts."""
+    out = subprocess.run(
+        ["cargo", "build", "--locked", *config["args"], "--target", WASM[1],
+         "-Z", "unstable-options", "--unit-graph"],
+        cwd=WS, env=dict(os.environ, RUSTC_BOOTSTRAP="1"), check=True,
+        capture_output=True, text=True).stdout
+    return classify_wasm_units(json.loads(out), config["packages"], members)
+
 def resolve(config, members):
     """resolve_for on every host, merged: {package: (features, {os: first-party}, {os: third-party})}.
 
@@ -685,6 +752,8 @@ def resolve(config, members):
     package whose features differ by host would need two targets where cargo
     has one; that has not been needed, and is refused rather than guessed.
     """
+    if config.get("wasm"):
+        config["host_packages"], unit_features = wasm_unit_domains(config, members)
     per_host = {os_name: resolve_for(config, members, triple) for os_name, triple in config.get("triples", HOSTS)}
     out = {}
     for pkg in sorted(set().union(*per_host.values())):
@@ -696,6 +765,10 @@ def resolve(config, members):
         fp = {os_name: (r[pkg][1] if pkg in r else set()) for os_name, r in per_host.items()}
         tp = {os_name: (r[pkg][2] if pkg in r else set()) for os_name, r in per_host.items()}
         out[pkg] = (features, fp, tp)
+    if config.get("wasm"):
+        for name, (features, _, _) in out.items():
+            if name not in unit_features or features != unit_features[name]:
+                sys.exit(f"buckify-crates: {name} tree features do not match its exact Cargo unit; separate unit rendering is required")
     return out
 
 def split_hosts(per_os):
@@ -811,7 +884,7 @@ def main():
         if w.get("features"):
             args += ["--features", ",".join(w["features"])]
         configs["wasm-" + w["package"]] = {"args": args, "edges": "normal,build", "all_targets": set(),
-                                            "check_root": w["package"], "triples": [WASM], "wasm": True}
+                                            "check_root": w["package"], "triples": [WASM], "wasm": True, "packages": m["packages"]}
     wanted_ignored = ignored_runs(config.get("ignored-tests"))
     resolved = {name: resolve(cfg, members) for name, cfg in configs.items()}
 
@@ -883,12 +956,14 @@ def main():
             key = json.dumps([pkg, sorted(feats), n_vis[o], n_tp[o], b_vis[o], b_tp[o]])
         else:
             key = json.dumps([pkg, sorted(feats), {o: [n_vis[o], n_tp[o], b_vis[o], b_tp[o]] for o in hosts}])
+        platform = variant_platform(configs[cfg], pkgs[pkg])
+        key = platform_variant_key(key, platform)
         if key not in names:
             # The hash only tells two targets' names apart; nothing trusts it,
             # and changing it would rename every native target in every
             # rendering. semgrep's sha1 rule does not read usedforsecurity.
             names[key] = f"rust-{pkg}" if cfg == "build" else f"rust-{pkg}--{hashlib.sha1(key.encode(), usedforsecurity=False).hexdigest()[:8]}"  # nosemgrep: python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1
-            emit_lib(names[key], pkg, feats, deps, build_deps)
+            emit_lib(names[key], pkg, feats, deps, build_deps, platform)
         name = names[key]
         label_pkg[":" + name] = pkg
         keys[(cfg, pkg)] = (name, feats, None, deps)
@@ -964,7 +1039,7 @@ def main():
             ])
         return {"OUT_DIR": f"$(location :{bs}-run[out_dir])"}, [f"@$(location :{bs}-run[rustc_flags])"]
 
-    def rule(kind, name, pkg, target, feats, deps, extra_env=None, bs=({}, [])):
+    def rule(kind, name, pkg, target, feats, deps, extra_env=None, bs=({}, []), platform=PLATFORM):
         p, crate_dir, rel, env, lints, _ = common(pkg)
         tkinds = set(target["kind"])
         if "test" in tkinds:
@@ -991,20 +1066,20 @@ def main():
             *([f"        rustc_flags = {star(lints + bs[1])},"] if lints or bs[1] else []),
             f"        deps = {select_deps(*deps)},",
             f'        clippy_configuration = "{clippy_label(clippy_toml_for(crate_dir))}",',
-            f'        default_target_platform = "{PLATFORM}",',
+            f'        default_target_platform = "{platform}",',
             '        visibility = ["PUBLIC"],',
             "    )",
         ])
         clippy_tomls.add(clippy_toml_for(crate_dir))
 
-    def emit_lib(name, pkg, feats, deps, build_deps):
+    def emit_lib(name, pkg, feats, deps, build_deps, platform):
         p = pkgs[pkg]
         lib = next((t for t in p["targets"] if set(t["kind"]) & {"lib", "rlib", "cdylib", "proc-macro"}), None)
         bs = buildscript(name, pkg, feats, build_deps)
         if lib is None:
             names_without_lib.add(name)
             return
-        rule("cargo.rust_library", name, pkg, lib, feats, deps, bs=bs)
+        rule("cargo.rust_library", name, pkg, lib, feats, deps, bs=bs, platform=platform)
 
     names_without_lib = set()
     clippy_tomls = set()

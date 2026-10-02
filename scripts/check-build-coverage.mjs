@@ -66,7 +66,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const SOURCE_DIGEST = "71b826bd12d78df786b2ba424f58ad62b493e8d76bc8ed8c14b91309d0a9d0db";
+const SOURCE_DIGEST = "be19a2a98f0ad6da007835fc7bc07a943c7effa44fab66009861d5783cdae923";
 const PLACEHOLDER = "__EXPECTED_DIGEST__";
 const POLICY_PATH = "scripts/build-coverage.policy.json";
 
@@ -166,6 +166,35 @@ export function readPolicy(root) {
   return JSON.parse(readFileSync(path, "utf8")).exceptions ?? {};
 }
 
+/**
+ * BUCK files in this repository's tree that are not part of its build graph.
+ *
+ * Obligations are counted from the TREE rather than from the graph, on purpose:
+ * counting from the graph would let an undeclared BUCK file hide a claim. The
+ * cost is that every BUCK file in the tree must be readable by this section,
+ * and under the read sandbox that means every one must be declared in its
+ * `srcs` — which a file in another CELL cannot be, because the reference would
+ * not even be spelled the same before and after that cell exists.
+ *
+ * GaugeWright met this on 2026-09-24: BUILD.md stage 5 added
+ * `tools/buck/toolchains/`, the root of the toolchains cell, whose rules load a
+ * prelude that an un-re-rendered workspace does not have. The file was
+ * deliberately outside the graph — and this check opened it anyway and reddened
+ * `main` with an ENOENT on a path that plainly exists.
+ *
+ * So a repository may name such a file in its own policy, where the fact is
+ * local and visible, rather than this shared check carrying one repository's
+ * directory layout. Naming a file here removes it from the scan and nothing
+ * else: it can carry no `covers` claim, which is exactly why it is safe, and
+ * exactly what must be re-checked if that ever stops being true.
+ */
+export function foreignBuckFiles(root) {
+  const path = resolve(root, POLICY_PATH);
+  if (!existsSync(path)) return [];
+  const declared = JSON.parse(readFileSync(path, "utf8")).outsideTheGraph;
+  return Array.isArray(declared) ? declared : Object.keys(declared ?? {});
+}
+
 async function main() {
   const selfPath = fileURLToPath(import.meta.url);
   const root = resolve(dirname(selfPath), "..");
@@ -177,10 +206,11 @@ async function main() {
   }
 
   const exceptions = readPolicy(root);
+  const foreign = new Set(foreignBuckFiles(root));
   const workspaces = tracked(root, "*Cargo.toml").filter((manifest) =>
     /^\[workspace\]$/m.test(readFileSync(resolve(root, manifest), "utf8")),
   );
-  const buckFiles = tracked(root, "BUCK", "*/BUCK");
+  const buckFiles = tracked(root, "BUCK", "*/BUCK").filter((f) => !foreign.has(f));
   const { findings, stale, obligations } = analyze({
     buck: buckFiles.map((f) => readFileSync(resolve(root, f), "utf8")).join("\n"),
     rustLocks: tracked(root, "*Cargo.lock"),
