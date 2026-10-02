@@ -85,6 +85,8 @@ section agent-guide
 echo "== agent guide, as an edge =="
 section carries-agent-guide
 section carries-agent-guide-checker
+section carries-docs-theme-fonts
+section carries-docs-theme-mark
 
 echo "== product contracts =="
 section product-contracts

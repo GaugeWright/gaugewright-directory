@@ -152,6 +152,28 @@ carries(
     srcs = ["scripts/check-agent-guide.mjs"],
 )
 
+# The wholly owned documentation fonts and binary mark (GaugeWright DR-0093,
+# BUILD stage 4). The surrounding assets/ contains locally extended CSS and
+# is deliberately not compared as one directory.
+carries(
+    name = "carries-docs-theme-fonts",
+    artifact = "gaugewright//:docs-theme-fonts",
+    checkout = "gaugewright-directory",
+    path = "docs/assets/fonts",
+    directory = True,
+    renderer = "node tools/docs-theme.mjs --write, in the GaugeWright repository",
+    srcs = glob(["docs/assets/fonts/**/*"]),
+)
+
+carries(
+    name = "carries-docs-theme-mark",
+    artifact = "gaugewright//:docs-theme-mark",
+    checkout = "gaugewright-directory",
+    path = "docs/assets/mark-clear-64.png",
+    renderer = "node tools/docs-theme.mjs --write, in the GaugeWright repository",
+    srcs = ["docs/assets/mark-clear-64.png"],
+)
+
 # The crate and the platform crates it takes by path, as native targets,
 # rendered from Cargo.toml by scripts/buckify-crates.py (GaugeWright BUILD.md
 # stages 5 and 6).
