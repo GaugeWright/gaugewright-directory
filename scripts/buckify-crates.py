@@ -65,7 +65,7 @@ graph's own, and the rendering is <dir>/native-crates.bzl and
 import hashlib, json, os, re, subprocess, sys
 from pathlib import Path
 
-SOURCE_DIGEST = "b5bc21c806ab3262cbcb1ba272c0ec77ebbcea138a3f0dab010e26f2aa5a2bfd"
+SOURCE_DIGEST = "53bf3745f58b93251f3f8e88136a04d2a05af44ace5ec8a796243ba695ed8daa"
 PLACEHOLDER = "__EXPECTED_DIGEST__"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -697,44 +697,108 @@ def resolve_for(config, members, triple):
 
 WASM = ("wasm", "wasm32-unknown-unknown")
 
-def classify_wasm_units(graph, packages, members):
-    """Preserve Cargo's host domain; refuse units the package renderer cannot split.
+def classify_wasm_units(graph, packages, members, include_domains=False):
+    """Retain exact first-party host/WASM units and edges without compiling.
 
-    Cargo tree collapses a package compiled twice with different domains/features.
-    The pinned Cargo unit graph identifies that case without compiling anything.
-    Host-only path packages with target-specific dependencies are also refused:
-    a graph read on this machine cannot establish their other-host selection.
+    A package may occur in both domains with identical features. Different
+    feature sets or multiple profiles in a domain remain unsupported; target-
+    conditional host dependencies remain refused rather than guessed portable.
     """
     if graph.get("version") != 1:
         sys.exit("buckify-crates: unsupported Cargo unit-graph version")
+    units = graph["units"]
     by_id = {p["id"]: p for p in packages}
-    domains = {}
-    for unit in graph["units"]:
-        if unit["mode"] != "build" or not set(unit["target"]["kind"]) & {"lib", "rlib", "cdylib", "proc-macro"}:
-            continue
+    local_ids = {}
+    for name in members:
+        admitted = [p["id"] for p in packages if p["name"] == name and p["source"] is None]
+        if len(admitted) != 1:
+            sys.exit(f"buckify-crates: ambiguous first-party package identity for {name}")
+        local_ids[name] = admitted[0]
+    domains, selected = {}, {}
+    def library(unit):
+        return unit["mode"] == "build" and bool(set(unit["target"]["kind"]) & {"lib", "rlib", "cdylib", "proc-macro"})
+    def identity(unit):
         package = by_id.get(unit["pkg_id"])
         if package is None:
             sys.exit(f"buckify-crates: Cargo unit {unit['pkg_id']} is absent from metadata")
+        if package["name"] in local_ids and package["id"] != local_ids[package["name"]]:
+            sys.exit(f"buckify-crates: conflicting first-party package identity for {package['name']}")
+        platform = unit["platform"]
+        if platform not in (None, WASM[1]):
+            sys.exit(f"buckify-crates: unsupported unit platform {platform} for {package['name']}")
+        return package, "host" if platform is None else "wasm"
+    for i, unit in enumerate(units):
+        if not library(unit):
+            continue
+        package, domain = identity(unit)
         name = package["name"]
         if name not in members:
             continue
-        platform = unit["platform"]
-        if platform not in (None, WASM[1]):
-            sys.exit(f"buckify-crates: unsupported unit platform {platform} for {name}")
-        domain = "host" if platform is None else "wasm"
-        domains.setdefault(name, {}).setdefault(domain, set()).add(tuple(sorted(unit["features"])))
-    for name, units in domains.items():
-        if len(units) != 1 or any(len(features) != 1 for features in units.values()):
-            sys.exit(f"buckify-crates: {name} has ambiguous host/WASM units or feature sets {units}; "
-                     "separate unit rendering is required, not a guessed platform")
-        if "host" in units:
+        features = tuple(sorted(unit["features"]))
+        entry = domains.setdefault(name, {}).setdefault(domain, {"features": set(), "profiles": set()})
+        entry["features"].add(features)
+        entry["profiles"].add(json.dumps(unit.get("profile"), sort_keys=True))
+        selected.setdefault((name, domain), []).append(i)
+    for name, records in domains.items():
+        feature_sets = set().union(*(r["features"] for r in records.values()))
+        if len(feature_sets) != 1 or any(len(r["profiles"]) != 1 for r in records.values()):
+            sys.exit(f"buckify-crates: {name} has ambiguous host/WASM feature sets or profiles; separate unsupported unit rendering is required")
+        if "host" in records:
             package = next(p for p in packages if p["name"] == name and p["source"] is None)
             if any(d.get("target") and d["kind"] != "dev" for d in package["dependencies"]):
-                sys.exit(f"buckify-crates: host-side {name} has target-specific dependencies; "
-                         "portable host-domain rendering is not established")
-    hosts = {name for name, units in domains.items() if "host" in units}
-    features = {name: set(next(iter(next(iter(units.values()))))) for name, units in domains.items()}
-    return hosts, features
+                sys.exit(f"buckify-crates: host-side {name} has target-specific dependencies; portable host-domain rendering is not established")
+    records = {}
+    def dependencies(indices, expected_domain=None):
+        first, third = set(), set()
+        for i in indices:
+            unit = units[i]
+            if not library(unit):
+                sys.exit("buckify-crates: unsupported non-library dependency in Cargo domain")
+            package, domain = identity(unit)
+            macro = "proc-macro" in unit["target"]["kind"]
+            if expected_domain and domain != ("host" if macro else expected_domain):
+                sys.exit("buckify-crates: Cargo dependency crosses an unsupported unit domain")
+            if package["name"] in members:
+                first.add((package["name"], domain))
+            else:
+                third.add((package["name"], package["version"]))
+        return first, third
+    for (name, domain), indices in selected.items():
+        answers = []
+        for i in indices:
+            normal, build = [], []
+            for dep in units[i]["dependencies"]:
+                j = dep["index"]
+                if units[j]["mode"] == "run-custom-build":
+                    scripts = units[j]["dependencies"]
+                    if len(scripts) != 1 or units[scripts[0]["index"]]["target"]["kind"] != ["custom-build"] or units[j]["pkg_id"] != units[i]["pkg_id"] or units[scripts[0]["index"]]["pkg_id"] != units[i]["pkg_id"]:
+                        sys.exit("buckify-crates: unsupported Cargo build-script dependency shape")
+                    program = units[scripts[0]["index"]]
+                    build.extend(d["index"] for d in program["dependencies"])
+                else:
+                    normal.append(j)
+            nf, nt = dependencies(normal, domain)
+            bf, bt = dependencies(build, "host")
+            answers.append((nf, nt, bf, bt))
+        if any(answer != answers[0] for answer in answers[1:]):
+            sys.exit(f"buckify-crates: {name} has multiple dependency graphs in one domain")
+        nf, nt, bf, bt = answers[0]
+        records[(name, domain)] = {"features": set(next(iter(domains[name][domain]["features"]))),
+                                  "normal_fp": nf, "normal_tp": nt, "build_fp": bf, "build_tp": bt}
+    hosts = {name for name, records in domains.items() if set(records) == {"host"}}
+    features = {name: set(next(iter(next(iter(records.values()))["features"]))) for name, records in domains.items()}
+    return (hosts, features, records) if include_domains else (hosts, features)
+
+
+def domain_for_package(config, package, requested=None):
+    """Choose one exact domain; build ancestry supplies host explicitly."""
+    if not config.get("wasm"):
+        return None
+    available = {domain for name, domain in config["unit_domains"] if name == package}
+    domain = requested or ("wasm" if "wasm" in available else "host")
+    if domain not in available:
+        sys.exit(f"buckify-crates: {package} has no exact {domain} unit")
+    return domain
 
 def wasm_unit_domains(config, members):
     """Read the pinned Cargo's graph only; this does not compile or run build scripts."""
@@ -743,7 +807,7 @@ def wasm_unit_domains(config, members):
          "-Z", "unstable-options", "--unit-graph"],
         cwd=WS, env=dict(os.environ, RUSTC_BOOTSTRAP="1"), check=True,
         capture_output=True, text=True).stdout
-    return classify_wasm_units(json.loads(out), config["packages"], members)
+    return classify_wasm_units(json.loads(out), config["packages"], members, include_domains=True)
 
 def resolve(config, members):
     """resolve_for on every host, merged: {package: (features, {os: first-party}, {os: third-party})}.
@@ -753,7 +817,7 @@ def resolve(config, members):
     has one; that has not been needed, and is refused rather than guessed.
     """
     if config.get("wasm"):
-        config["host_packages"], unit_features = wasm_unit_domains(config, members)
+        config["host_packages"], unit_features, config["unit_domains"] = wasm_unit_domains(config, members)
     per_host = {os_name: resolve_for(config, members, triple) for os_name, triple in config.get("triples", HOSTS)}
     out = {}
     for pkg in sorted(set().union(*per_host.values())):
@@ -770,6 +834,16 @@ def resolve(config, members):
             if name not in unit_features or features != unit_features[name]:
                 sys.exit(f"buckify-crates: {name} tree features do not match its exact Cargo unit; separate unit rendering is required")
     return out
+
+def wasm_third_party_resolution(config):
+    """Only actual WASM normal edges request WASM third-party features.
+
+    Host build/proc-macro ancestry stays in the ordinary host inventory, even
+    when the same first-party package also has a WASM unit.
+    """
+    return {name: (record["features"], {}, {WASM[0]: record["normal_tp"]})
+            for (name, domain), record in config["unit_domains"].items() if domain == "wasm"}
+
 
 def split_hosts(per_os):
     """(common, {os: extra}) of a per-host set: what every host has, and what each
@@ -888,7 +962,7 @@ def main():
     wanted_ignored = ignored_runs(config.get("ignored-tests"))
     resolved = {name: resolve(cfg, members) for name, cfg in configs.items()}
 
-    third = render_third_party(CELL, local, [resolved[n] for n, c in configs.items() if c.get("wasm")])
+    third = render_third_party(CELL, local, [wasm_third_party_resolution(c) for c in configs.values() if c.get("wasm")])
     if checking and THIRD_PARTY.read_text() != third:
         sys.exit("third-party/Cargo.toml is not what the members' Cargo.toml files render to; "
                  f"run {RUN}, copy Cargo.lock into third-party/, and run reindeer")
@@ -926,7 +1000,7 @@ def main():
     build = lambda k: bool(k & {"build"})
     dev_only = lambda k: "dev" in k and "normal" not in k
 
-    def variant(cfg, pkg):
+    def variant(cfg, pkg, domain=None):
         """The lib target name for pkg in cfg, emitting it (and its deps) once.
 
         Dependencies are visited in name order, normal then build, before the
@@ -934,10 +1008,20 @@ def main():
         same on every run. Memoised before the dev-dependencies are visited,
         because a crate's tests may use a crate that depends on it -- cargo
         allows the cycle, and the test target is not the library it reaches."""
-        if (cfg, pkg) in keys:
-            return ":" + keys[(cfg, pkg)][0]
+        domain = domain_for_package(configs[cfg], pkg, domain)
+        identity = (cfg, pkg, domain) if domain else (cfg, pkg)
+        if identity in keys:
+            return ":" + keys[identity][0]
         feats, fp, tpd = resolved[cfg][pkg]
+        domain_record = configs[cfg].get("unit_domains", {}).get((pkg, domain))
+        if domain_record:
+            feats = domain_record["features"]
         def kind(want):
+            if domain_record:
+                kinds = [k for k in ("normal", "build") if want({k})]
+                fps = {o: sorted(set().union(*(domain_record[k + "_fp"] for k in kinds))) for o in fp}
+                tps = {o: sorted(tp_label(n, v) for n, v in set().union(*(domain_record[k + "_tp"] for k in kinds))) for o in fp}
+                return fps, tps
             fps = {o: sorted(d for d in fp[o] if want(declared_kinds(pkg, d))) for o in fp}
             tps = {o: sorted(tp_label(n, v) for n, v in tpd[o] if want(declared_kinds(pkg, n))) for o in tpd}
             return fps, tps
@@ -945,7 +1029,7 @@ def main():
         hosts = sorted(fp)
         def labels(fps, tps):
             """Visit the first-party variants in order, then (common, {os: extra})."""
-            visited = {o: [variant(cfg, d) for d in fps[o]] for o in hosts}
+            visited = {o: [variant(cfg, *d) if domain_record else variant(cfg, d) for d in fps[o]] for o in hosts}
             return visited, split_hosts({o: set(visited[o]) | set(tps[o]) for o in hosts})
         n_vis, deps = labels(n_fp, n_tp)
         b_vis, build_deps = labels(b_fp, b_tp)
@@ -956,7 +1040,7 @@ def main():
             key = json.dumps([pkg, sorted(feats), n_vis[o], n_tp[o], b_vis[o], b_tp[o]])
         else:
             key = json.dumps([pkg, sorted(feats), {o: [n_vis[o], n_tp[o], b_vis[o], b_tp[o]] for o in hosts}])
-        platform = variant_platform(configs[cfg], pkgs[pkg])
+        platform = WASM_PLATFORM if domain == "wasm" else PLATFORM if domain == "host" else variant_platform(configs[cfg], pkgs[pkg])
         key = platform_variant_key(key, platform)
         if key not in names:
             # The hash only tells two targets' names apart; nothing trusts it,
@@ -966,9 +1050,11 @@ def main():
             emit_lib(names[key], pkg, feats, deps, build_deps, platform)
         name = names[key]
         label_pkg[":" + name] = pkg
-        keys[(cfg, pkg)] = (name, feats, None, deps)
+        keys[identity] = (name, feats, None, deps)
         _, dev = labels(d_fp, d_tp)
-        keys[(cfg, pkg)] = (name, feats, dev, deps)
+        keys[identity] = (name, feats, dev, deps)
+        if domain == domain_for_package(configs[cfg], pkg):
+            keys[(cfg, pkg)] = keys[identity]
         return ":" + name
 
     def plus(*parts):
