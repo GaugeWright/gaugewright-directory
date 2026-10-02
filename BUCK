@@ -152,6 +152,29 @@ carries(
     srcs = ["scripts/check-agent-guide.mjs"],
 )
 
+# The shared stylesheet region and whole masthead template (GaugeWright
+# DR-0093, BUILD stage 4). Local CSS below the closing marker stays local.
+carries(
+    name = "carries-docs-theme-stylesheet",
+    artifact = "gaugewright//:docs-theme-stylesheet",
+    begins = "^/[*] BEGIN GAUGEWRIGHT DOCS THEME v1",
+    checkout = "gaugewright-directory",
+    ends = "^/[*] END GAUGEWRIGHT DOCS THEME v1 [*]/$",
+    path = "docs/assets/brand.css",
+    region = True,
+    renderer = "node tools/docs-theme.mjs --write, in the GaugeWright repository",
+    srcs = ["docs/assets/brand.css"],
+)
+
+carries(
+    name = "carries-docs-theme-logo",
+    artifact = "gaugewright//:docs-theme-logo",
+    checkout = "gaugewright-directory",
+    path = "overrides/partials/logo.html",
+    renderer = "node tools/docs-theme.mjs --write, in the GaugeWright repository",
+    srcs = ["overrides/partials/logo.html"],
+)
+
 # The wholly owned documentation fonts and binary mark (GaugeWright DR-0093,
 # BUILD stage 4). The surrounding assets/ contains locally extended CSS and
 # is deliberately not compared as one directory.
