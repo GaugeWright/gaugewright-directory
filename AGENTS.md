@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:8bef3b2f5ab56d78646f38d2d08a41cec5383f35831bb8f60f8fb0f159d9f612 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:7d715a63319cf9b04913f96b7306fdcba62050388ed98904a75b68705ef30a65 -->
 
 ## Working in a GaugeWright repository
 
@@ -656,6 +656,14 @@ a toolchain, a probe, a virtualenv — goes under `~/.local/opt/`. macOS has no
 redirects its transcript to a file and appends its exit status. Start it with
 `nohup <launcher> >/dev/null 2>&1 </dev/null & disown`, and wait on the exit
 line.
+
+An agent's command sandbox cannot reach the login keychain. Anything that
+reads it — `infisical run`, `gh` on a keychain-stored token — fails there with
+`exit status 51`, "The user name or passphrase you entered is not correct",
+which reads as a broken login and is not one. `security show-keychain-info
+~/Library/Keychains/login.keychain-db` tells the two apart: it fails the same
+way inside the sandbox and succeeds outside it. Run the command outside the
+sandbox; do not ask the founder to log in again.
 
 ### Naming
 
