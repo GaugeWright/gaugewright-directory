@@ -201,3 +201,23 @@ carries(
 # rendered from Cargo.toml by scripts/buckify-crates.py (GaugeWright BUILD.md
 # stages 5 and 6).
 native_crates()
+
+# Shared checks carried as build edges (GaugeWright BUILD.md stage 4).
+# The existing digest checks remain for lone checkouts.
+carries(
+    name = "carries-build-coverage",
+    artifact = "gaugewright//:shared-build-coverage",
+    checkout = "gaugewright-directory",
+    path = "scripts/check-build-coverage.mjs",
+    renderer = "node tools/carried-artifacts.mjs --close --repository=gaugewright-directory",
+    srcs = ["scripts/check-build-coverage.mjs"],
+)
+
+carries(
+    name = "carries-buckify-crates",
+    artifact = "gaugewright//:shared-buckify-crates",
+    checkout = "gaugewright-directory",
+    path = "scripts/buckify-crates.py",
+    renderer = "node tools/carried-artifacts.mjs --close --repository=gaugewright-directory",
+    srcs = ["scripts/buckify-crates.py"],
+)

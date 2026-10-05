@@ -44,7 +44,7 @@ case "${1:-}" in
     fi ;;
   build-coverage)    node scripts/check-build-coverage.mjs ;;
   agent-guide)       node scripts/check-agent-guide.mjs ;;
-  carries-agent-guide|carries-agent-guide-checker|carries-docs-theme-stylesheet|carries-docs-theme-logo|carries-docs-theme-fonts|carries-docs-theme-mark)
+  carries-agent-guide|carries-agent-guide-checker|carries-docs-theme-stylesheet|carries-docs-theme-logo|carries-docs-theme-fonts|carries-docs-theme-mark|carries-build-coverage|carries-buckify-crates)
     # The cross-repository edge (GaugeWright DR-0124 stage 4). In a workspace
     # the bar builds the `carries` target and never reaches here; reaching here
     # means there is no `gaugewright` cell, so the question cannot be asked.

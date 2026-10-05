@@ -85,6 +85,10 @@ section agent-guide
 echo "== agent guide, as an edge =="
 section carries-agent-guide
 section carries-agent-guide-checker
+
+echo "== shared checks, as edges =="
+section carries-build-coverage
+section carries-buckify-crates
 section carries-docs-theme-stylesheet
 section carries-docs-theme-logo
 section carries-docs-theme-fonts
