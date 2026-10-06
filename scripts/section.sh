@@ -15,36 +15,26 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-# A step whose tool is absent. Returns non-zero when the caller must skip, so a
-# guarded step reads `if prerequisite …; then`; under `required` it never
-# returns at all. `prerequisites` arrives from scripts/check.sh — from its
-# argument on the direct path, and from the action's environment on the Buck2
-# path, where it is part of the action's key so that a skip is never served to
-# an invocation that required an answer. A direct invocation of this script
-# carrying no word is a gate, so it defaults to required.
-#
-#   $1 the tool, $2 what it gates, $3 the command that installs it
-prerequisite() {
-  command -v "$1" >/dev/null 2>&1 && return 0
-  if [ "${prerequisites:-required}" = required ]; then
-    echo "$2 requires $1." >&2
-    echo "install: $3" >&2
-    exit 1
-  fi
-  echo "-- $2 SKIPPED: $1 is not installed --" >&2
-  echo "   the ci.yml check job installs it and runs this on every pull request." >&2
-  echo "   To close the gap locally: $3" >&2
-  return 1
-}
+# What a step does about a tool this host has not installed is stated once, in
+# scripts/prerequisite.sh, rendered from the GaugeWright repository and checked
+# by the `shared-harness` section (GaugeWright DR-0132). `prerequisites` arrives
+# from scripts/check.sh — from its argument on the direct path, and from the
+# action's environment on the Buck2 path, where it is part of the action's key
+# so that a skip is never served to an invocation that required an answer. A
+# direct invocation of this script carrying no word is a gate: the helper
+# defaults it to required.
+. scripts/prerequisite.sh
+GATE_JOB="the fleet's gaugewright/bar"
 
 case "${1:-}" in
   advisories)
-    if prerequisite cargo-audit "the dependency advisory audit" "cargo install cargo-audit"; then
+    if prerequisite cargo-audit "the dependency advisory audit" "cargo install cargo-audit" "$GATE_JOB"; then
       cargo audit
     fi ;;
   build-coverage)    node scripts/check-build-coverage.mjs ;;
   agent-guide)       node scripts/check-agent-guide.mjs ;;
-  carries-agent-guide|carries-agent-guide-checker|carries-docs-theme-stylesheet|carries-docs-theme-logo|carries-docs-theme-fonts|carries-docs-theme-mark|carries-build-coverage|carries-buckify-crates)
+  shared-harness)    node scripts/check-shared-harness.mjs ;;
+  carries-agent-guide|carries-agent-guide-checker|carries-docs-theme-stylesheet|carries-docs-theme-logo|carries-docs-theme-fonts|carries-docs-theme-mark|carries-build-coverage|carries-buckify-crates|carries-prerequisite|carries-harness-check)
     # The cross-repository edge (GaugeWright DR-0124 stage 4). In a workspace
     # the bar builds the `carries` target and never reaches here; reaching here
     # means there is no `gaugewright` cell, so the question cannot be asked.
@@ -64,7 +54,7 @@ case "${1:-}" in
   # across every repository at once by `tools/docs-theme.mjs --check` in the
   # GaugeWright repository.
   documentation)
-    if prerequisite mkdocs "the strict documentation build" "python3 -m pip install -r docs/requirements.txt"; then
+    if prerequisite mkdocs "the strict documentation build" "python3 -m pip install -r docs/requirements.txt" "$GATE_JOB"; then
       mkdocs build --strict
       node scripts/check-docs-theme.mjs
     fi ;;

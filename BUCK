@@ -31,7 +31,7 @@ load("//:native-crates.bzl", "native_crates")
 # only when the pin moves, which is exactly when these must re-run.
 PLATFORM = glob(["platform/**/*"], exclude = ["platform/**/node_modules/**", "platform/**/target/**"])
 
-CARGO_UNIT = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "scripts/section.sh"] \
+CARGO_UNIT = ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "scripts/section.sh", "scripts/prerequisite.sh"] \
     + glob(["src/**/*.rs", "tests/**/*.rs"]) + PLATFORM
 
 # Both are cargo, so both keep the cores busy and both take this repository's
@@ -74,7 +74,7 @@ check_world(
     command = "scripts/section.sh advisories",
     covers = ["rust-audit:Cargo.lock"],
     # The accepted-advisory record is a dotfile, which no glob would declare.
-    srcs = ["Cargo.lock", ".cargo/audit.toml", "scripts/section.sh"],
+    srcs = ["Cargo.lock", ".cargo/audit.toml", "scripts/section.sh", "scripts/prerequisite.sh"],
 )
 
 check_section(
@@ -83,7 +83,7 @@ check_section(
     command = "scripts/section.sh build-coverage",
     # The coverage claim is read out of this BUCK file itself; the read sandbox
     # (GaugeWright FLEET.md stage 0) found it undeclared on 2026-09-22.
-    srcs = ["BUCK", "Cargo.toml", "Cargo.lock", "scripts/check.sh", "scripts/section.sh", "scripts/check-build-coverage.mjs"]
+    srcs = ["BUCK", "Cargo.toml", "Cargo.lock", "scripts/check.sh", "scripts/section.sh", "scripts/prerequisite.sh", "scripts/check-build-coverage.mjs"]
         + glob([".github/workflows/*.yml", "scripts/build-coverage.policy.json"])
         # third-party/ is its own package, so its files are declared by reference.
         + ["//third-party:BUCK", "//third-party:Cargo.lock", "//third-party:Cargo.toml"],
@@ -95,8 +95,19 @@ check_section(
     command = "scripts/section.sh agent-guide",
     # The checker also sweeps the tree for a second guide file anywhere, so a
     # new AGENTS.md or CLAUDE.md appearing in any directory is an input.
-    srcs = ["AGENTS.md", "CLAUDE.md", "scripts/section.sh", "scripts/check-agent-guide.mjs"]
+    srcs = ["AGENTS.md", "CLAUDE.md", "scripts/section.sh", "scripts/prerequisite.sh", "scripts/check-agent-guide.mjs"]
         + glob(["**/[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]", "**/[Cc][Ll][Aa][Uu][Dd][Ee].[Mm][Dd]"], exclude = ["AGENTS.md", "CLAUDE.md"]),
+)
+
+# The prerequisite helper every section sources, and the word that decides what
+# it does, are rendered from the GaugeWright repository (DR-0132). This asks
+# whether the helper is still what was rendered here and whether every buck2
+# invocation in the bar names the word.
+check_section(
+    name = "shared-harness",
+    checkout = "gaugewright-directory",
+    command = "scripts/section.sh shared-harness",
+    srcs = ["scripts/check.sh", "scripts/section.sh", "scripts/prerequisite.sh", "scripts/check-shared-harness.mjs"],
 )
 
 check_section(
@@ -106,7 +117,7 @@ check_section(
     # Every evidence id in the contract names a file, and the check asks that
     # each exists — the integration tests today. The read sandbox (GaugeWright
     # FLEET.md stage 0) found tests/directory_wiring.rs undeclared on 2026-09-22.
-    srcs = ["contracts/product-routes.json", "src/lib.rs", "scripts/section.sh", "scripts/check-product-contracts.mjs"]
+    srcs = ["contracts/product-routes.json", "src/lib.rs", "scripts/section.sh", "scripts/prerequisite.sh", "scripts/check-product-contracts.mjs"]
         + glob(["tests/**/*"]),
 )
 
@@ -116,14 +127,14 @@ check_section(
     command = "scripts/section.sh formatting",
     # `cargo fmt --all` covers this package alone: the platform submodule is
     # excluded from the workspace, so it is not an input here.
-    srcs = ["Cargo.toml", "rust-toolchain.toml", "scripts/section.sh"] + glob(["src/**/*.rs", "tests/**/*.rs"]),
+    srcs = ["Cargo.toml", "rust-toolchain.toml", "scripts/section.sh", "scripts/prerequisite.sh"] + glob(["src/**/*.rs", "tests/**/*.rs"]),
 )
 
 check_section(
     name = "documentation",
     checkout = "gaugewright-directory",
     command = "scripts/section.sh documentation",
-    srcs = ["mkdocs.yml", "scripts/section.sh", "scripts/check-docs-theme.mjs"]
+    srcs = ["mkdocs.yml", "scripts/section.sh", "scripts/prerequisite.sh", "scripts/check-docs-theme.mjs"]
         + glob(["docs/**/*", "overrides/**/*"]),
 )
 
@@ -220,4 +231,22 @@ carries(
     path = "scripts/buckify-crates.py",
     renderer = "node tools/carried-artifacts.mjs --close --repository=gaugewright-directory",
     srcs = ["scripts/buckify-crates.py"],
+)
+
+carries(
+    name = "carries-prerequisite",
+    artifact = "gaugewright//:shared-prerequisite",
+    checkout = "gaugewright-directory",
+    path = "scripts/prerequisite.sh",
+    renderer = "node tools/carried-artifacts.mjs --close --repository=gaugewright-directory",
+    srcs = ["scripts/prerequisite.sh"],
+)
+
+carries(
+    name = "carries-harness-check",
+    artifact = "gaugewright//:shared-harness-check",
+    checkout = "gaugewright-directory",
+    path = "scripts/check-shared-harness.mjs",
+    renderer = "node tools/carried-artifacts.mjs --close --repository=gaugewright-directory",
+    srcs = ["scripts/check-shared-harness.mjs"],
 )
