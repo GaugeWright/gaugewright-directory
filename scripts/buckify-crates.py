@@ -65,7 +65,7 @@ graph's own, and the rendering is <dir>/native-crates.bzl and
 import hashlib, json, os, re, subprocess, sys
 from pathlib import Path
 
-SOURCE_DIGEST = "53bf3745f58b93251f3f8e88136a04d2a05af44ace5ec8a796243ba695ed8daa"
+SOURCE_DIGEST = "5d606643a849b847473553395de81aa1f8646a34bf6379b1a121e9141f7c2d53"
 PLACEHOLDER = "__EXPECTED_DIGEST__"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -597,7 +597,7 @@ def fixup_opt_levels():
     return out
 
 def lock_packages(path):
-    """(name, version, checksum) of every registry or git package a Cargo.lock pins.
+    """(name, version, source, checksum) of every external package a Cargo.lock pins.
 
     Parsed by hand rather than with tomllib, which the Python on the Mac gate
     host (Apple's 3.9) does not have; a lockfile's [[package]] blocks are flat.
@@ -606,12 +606,36 @@ def lock_packages(path):
     for line in list(path.read_text().splitlines()) + ["[[package]]"]:
         if line == "[[package]]":
             if cur.get("source", "").startswith(('"registry+', '"git+')):
-                found.add((cur["name"], cur["version"], cur.get("checksum", "")))
+                found.add((cur["name"], cur["version"], cur["source"], cur.get("checksum", "")))
             cur = {}
         elif " = " in line:
             k, v = line.split(" = ", 1)
             cur[k] = v
     return found
+
+def verify_git_materialization(lock_path, buck_path):
+    """The native fetch must use each exact commit selected by Cargo, not a ref."""
+    expected = set()
+    for _, _, source, _ in lock_packages(lock_path):
+        source = json.loads(source)
+        if source.startswith("git+"):
+            repository, separator, revision = source[4:].rpartition("#")
+            if not separator or not revision:
+                sys.exit("native git source has no exact locked revision")
+            expected.add((repository.split("?", 1)[0], revision))
+    actual = set()
+    for body in re.findall(r"^git_fetch\(\n(.*?)^\)", buck_path.read_text(), re.M | re.S):
+        fields = {}
+        for name in ("repo", "rev"):
+            match = re.search(r'^\s+' + name + r' = ("(?:[^"\\]|\\.)*"),$', body, re.M)
+            if not match:
+                sys.exit("native git_fetch has no literal repository/revision")
+            fields[name] = json.loads(match.group(1))
+        actual.add((fields["repo"], fields["rev"]))
+    if expected != actual:
+        sys.exit("third-party/BUCK git_fetch differs from exact Cargo.lock sources; "
+                 "copy Cargo.lock into third-party/ and re-run reindeer")
+
 
 def star(value):
     return json.dumps(value, indent=4).replace("\n", "\n    ")
@@ -1452,6 +1476,7 @@ def main():
         workspace, third_lock = lock_packages(WS / "Cargo.lock"), lock_packages(WS / "third-party/Cargo.lock")
         if workspace != third_lock:
             sys.exit("third-party/Cargo.lock pins different packages from Cargo.lock; copy Cargo.lock into third-party/ and re-run reindeer")
+        verify_git_materialization(WS / "Cargo.lock", WS / "third-party/BUCK")
         if not OUT.exists() or OUT.read_text() != text or not INDEX.exists() or INDEX.read_text() != index_text:
             sys.exit(f"native-crates.bzl or native-bar.json is not what Cargo.toml and scripts/section.sh render to; run {RUN}")
         print("native-crates.bzl and native-bar.json match Cargo.toml and the bar")
