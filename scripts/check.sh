@@ -4,7 +4,7 @@
 # passing gate cannot mean different things.
 #
 #   scripts/check.sh              the bar
-#   scripts/check.sh required     the gate (what ci.yml runs)
+#   scripts/check.sh required     the gate (what the fleet's gaugewright/bar runs)
 #
 # The word decides what an absent prerequisite means. A tool this host has not
 # installed is not a tool it cannot supply, and GaugeWright's shared agent guide
@@ -14,9 +14,9 @@
 # with a message about the host when it has nothing to say about the change is
 # how a reader learns to wave red through.
 #
-# What the gate covers is unchanged, because ci.yml installs every one of these
-# in the steps above the invocation and then asks for `required` — so a dropped
-# install step reddens the gate rather than quietly buying itself a skip.
+# What the gate covers is unchanged, because the fleet's hosts carry every one
+# of these and the gate asks for `required` — so a host missing one reddens the
+# gate rather than quietly buying itself a skip.
 #
 # Bare is the bar; any word at all — `required`, or a mistyped one — is the
 # gate, so a typo can never quietly buy a skip.
@@ -31,8 +31,9 @@ case "${1:-best-effort}" in
   *)           prerequisites=required ;;
 esac
 
-# The word travels with the section, and scripts/section.sh decides what an
-# absent tool means. It is in the Buck2 action's key too, so a run that skipped
+# The word travels with the section, and scripts/prerequisite.sh — rendered
+# from the GaugeWright repository and sourced by scripts/section.sh — decides
+# what an absent tool means. It is in the Buck2 action's key too, so a run that skipped
 # a section is never served to a later run that required an answer.
 
 # Stages 2 and 3 of the Buck2 migration (GaugeWright BUILD.md, DR-0124): every
@@ -82,6 +83,12 @@ section build-coverage
 echo "== agent guide =="
 section agent-guide
 
+# Rendered from tools/shared-checks/ in the GaugeWright repository (DR-0132):
+# scripts/prerequisite.sh, which every section sources, and the check that it
+# is still what was rendered and that each buck2 invocation here names the word.
+echo "== shared prerequisite harness =="
+section shared-harness
+
 echo "== agent guide, as an edge =="
 section carries-agent-guide
 section carries-agent-guide-checker
@@ -89,6 +96,8 @@ section carries-agent-guide-checker
 echo "== shared checks, as edges =="
 section carries-build-coverage
 section carries-buckify-crates
+section carries-prerequisite
+section carries-harness-check
 section carries-docs-theme-stylesheet
 section carries-docs-theme-logo
 section carries-docs-theme-fonts
