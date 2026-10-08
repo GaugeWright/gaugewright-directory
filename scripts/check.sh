@@ -66,7 +66,7 @@ buck2_section() {
   if [ -x ../GaugeWright/scripts/buck2-section.sh ]; then
     ../GaugeWright/scripts/buck2-section.sh "$@"
   else
-    buck2 build "$@"
+    buck2 build "$@" -c "green_bar.prerequisites=$prerequisites"
   fi
 }
 
