@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:22913c1a1afa938e27eb212a48cf2b5ad6bb2229b85e38f590233f83abbda800 -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b6d1869a4e41f3885e21d477122bef255466d4e64f0a5d862a1e34853740307b -->
 
 ## Working in a GaugeWright repository
 
@@ -440,8 +440,8 @@ the reply, not the combined one and not a workflow list. Waiting on the
 combined state alone returns early, because a context that has not posted yet
 is not holding it back. Size the wait for the gate's
 real cost: a cold bar on a busy host is minutes, and a queue with several
-hosts drains in the order of what only one platform can answer first, then
-age, so a round-number ceiling reports a working queue as stuck. And read a
+hosts drains by priority, raised by how long each job has waited, so a
+round-number ceiling reports a working queue as stuck. And read a
 check's exit status from the check: a pipeline returns its last command's status, so `scripts/check.sh |
 grep` under `set -e` commits a red bar. Write the transcript to a file and read
 it afterwards. The founder pinged agents whose polling had silently stopped on
