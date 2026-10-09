@@ -85,7 +85,7 @@ graph's own, and the rendering is <dir>/native-crates.bzl and
 import hashlib, json, os, re, subprocess, sys
 from pathlib import Path
 
-SOURCE_DIGEST = "5d445d60044c823afedbdcbe577aed08f19e1c9805c73ceae1da896089c6c347"
+SOURCE_DIGEST = "258ae499f205d1b658355c456870d38cc7fca70461b6a432fb25d6cca6d9bd3a"
 PLACEHOLDER = "__EXPECTED_DIGEST__"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -1273,6 +1273,11 @@ def main():
             f"        deps = {select_deps(*deps)},",
             f'        clippy_configuration = "{clippy_label(clippy_toml_for(crate_dir))}",',
             f'        default_target_platform = "{platform}",',
+            # Incremental compilation when the gate asks for it (`incremental`
+            # at the top of native_crates). Off, both are the prelude's
+            # defaults, so no action's key moves.
+            "        incremental_enabled = incremental,",
+            "        use_content_based_paths = not incremental,",
             f"        visibility = {visibility(pkg)},",
             "    )",
         ])
@@ -1304,6 +1309,17 @@ def main():
         *(['load("@gaugewright//tools/buck:wasm.bzl", "wasm_module"' + (', "wasm_bindgen"' if any(w.get("bindgen") for w in config["wasm"]) else "") + ')'] if config.get("wasm") else []),
         "",
         "def native_crates():",
+        "    # rustc's incremental compilation for this workspace's own crates, on only",
+        "    # when the workspace's root config says `green_bar.rust_incremental = 1`.",
+        "    # The fleet's gate says so for a pull request's bar whose change touches",
+        "    # Rust in a repository that declares `gate.rustIncremental`, and nothing",
+        "    # else does (GaugeWright DR-0255). The prelude then runs each of these",
+        "    # crates' compiles locally, keeps its incremental state in buck-out",
+        "    # between bars, and never uploads one or is served one from the cache.",
+        "    # Content-based source paths go off with it: rustc tracks the path a",
+        "    # crate's sources sit at, which names their content, so a file added to",
+        "    # a crate would otherwise discard that crate's whole incremental state.",
+        '    incremental = read_root_config("green_bar", "rust_incremental", "") == "1"',
     ]
 
     for cfg_name, cfg in configs.items():
