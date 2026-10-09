@@ -85,7 +85,7 @@ graph's own, and the rendering is <dir>/native-crates.bzl and
 import hashlib, json, os, re, subprocess, sys
 from pathlib import Path
 
-SOURCE_DIGEST = "258ae499f205d1b658355c456870d38cc7fca70461b6a432fb25d6cca6d9bd3a"
+SOURCE_DIGEST = "006473143a4e51604eea20de385ac3584baaa49edc0ddd5f4dd8dc923a5c798b"
 PLACEHOLDER = "__EXPECTED_DIGEST__"
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -1447,6 +1447,22 @@ def main():
                     continue
                 emitted.add(tname)
                 rule("native.rust_test", tname, pkg, t, feats, deps, extra_env=env, bs=bs)
+                # A crate's library tests under a name that does not move. The
+                # tag hashes the crate's resolved configuration, so it moves at
+                # every version cut, and a BUCK file that named a test binary by
+                # it broke its cell's bar on the next cut (gaugedesk-src WS-866).
+                if cfg_name == "test" and kinds & {"lib", "rlib", "proc-macro"}:
+                    stable = f"rust-test-{pkg}-lib"
+                    if stable not in emitted:
+                        emitted.add(stable)
+                        lines.extend([
+                            "    native.alias(",
+                            f'        name = "{stable}",',
+                            f'        actual = ":{tname}",',
+                            f'        default_target_platform = "{PLATFORM}",',
+                            '        visibility = ["PUBLIC"],',
+                            "    )",
+                        ])
                 if cfg_name == "test":
                     index["tests"].append({"target": f"{CELL}//:{tname}", "cwd": rel})
                     index["lint"].append(f"{CELL}//:{tname}[clippy.txt]")
