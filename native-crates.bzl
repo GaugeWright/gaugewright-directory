@@ -660,6 +660,12 @@ def native_crates():
         use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
+    native.alias(
+        name = "rust-test-gaugewright-directory-lib",
+        actual = ":rust-test-gaugewright-directory-lib--build",
+        default_target_platform = "prelude//platforms:default",
+        visibility = ["PUBLIC"],
+    )
     native_test_run(
         name = "rust-test-gaugewright-directory-lib--build-run",
         test = ":rust-test-gaugewright-directory-lib--build",
