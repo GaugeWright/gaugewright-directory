@@ -58,7 +58,7 @@ GAUGEWRIGHT_DIRECTORY_URL=https://… scripts/directory-check.sh
   the `GaugeWright` repository under `specs/systems.md`. The part of it that
   governs day-to-day work in this repository is carried below.
 
-<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:b6d1869a4e41f3885e21d477122bef255466d4e64f0a5d862a1e34853740307b -->
+<!-- BEGIN GAUGEWRIGHT SHARED AGENT GUIDE v1 sha256:2f3b7d5e1e19b92377cd5e5c7624daf5dc0a59a652aa6425129fea4e2442d9af -->
 
 ## Working in a GaugeWright repository
 
@@ -177,9 +177,9 @@ Work on a branch cut from `origin/main`, in your own worktree. Use atomic
 commits with direct messages and keep unrelated changes out.
 
 A pull request carries a substantive, cohesive body of work — it is not the
-unit of every change. When the work is that, open the pull request and merge it
-on the fleet's verdict; an implementation request already authorizes it, so do
-not ask first. A small fix is not that: for a UI or UX tweak, a little
+unit of every change. When the work is that, open the pull request; the fleet
+merges it after its complete per-change gate passes. An implementation request
+already authorizes it, so do not ask first. A small fix is not that: for a UI or UX tweak, a little
 correction, or one step in a chain of related changes, commit on your branch
 and stop — the founder says when accumulated commits become a pull request.
 
@@ -219,10 +219,11 @@ A change whose result is visual is shown to the founder on a running local
 instance before its pull request. The gates report structure and behaviour, and
 can all pass while the founder's read of the interface says the change is wrong.
 
-Merge your own pull request once the gate is green on its head commit. Do not
-wait for a review — GaugeWright has no independent reviewer, and the gate plus
-the commit trail are the approval evidence. Hold only when you have a specific reason that
-particular change should not land, and say what the reason is. A change that
+The fleet merges each non-draft pull request targeting a declared default
+branch once all required contexts are green on its head and current base.
+Draft the pull request when it needs to remain open. GaugeWright has no
+independent reviewer, and the gate plus the commit trail are the approval
+evidence. A change that
 ought to have been caught before landing is evidence the gate set is short; the
 repair is the missing check, not a human reading of the diff.
 
