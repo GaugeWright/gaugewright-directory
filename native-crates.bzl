@@ -8,6 +8,17 @@ load("@prelude//rust:cargo_package.bzl", "cargo")
 load("@gaugewright//tools/buck:native_test.bzl", "native_clippy_configuration", "native_lint_suite", "native_test_run", "native_test_suite")
 
 def native_crates():
+    # rustc's incremental compilation for this workspace's own crates, on only
+    # when the workspace's root config says `green_bar.rust_incremental = 1`.
+    # The fleet's gate says so for a pull request's bar whose change touches
+    # Rust in a repository that declares `gate.rustIncremental`, and nothing
+    # else does (GaugeWright DR-0255). The prelude then runs each of these
+    # crates' compiles locally, keeps its incremental state in buck-out
+    # between bars, and never uploads one or is served one from the cache.
+    # Content-based source paths go off with it: rustc tracks the path a
+    # crate's sources sit at, which names their content, so a file added to
+    # a crate would otherwise discard that crate's whole incremental state.
+    incremental = read_root_config("green_bar", "rust_incremental", "") == "1"
     native_clippy_configuration(
         name = "clippy-configuration",
     )
@@ -49,6 +60,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -89,6 +102,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -123,6 +138,8 @@ def native_crates():
         deps = [],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -163,6 +180,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -202,6 +221,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_binary(
@@ -243,6 +264,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -281,6 +304,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -321,6 +346,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -369,6 +396,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -407,6 +436,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -458,6 +489,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -501,6 +534,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     cargo.rust_library(
@@ -576,6 +611,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     native.rust_test(
@@ -619,6 +656,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     native_test_run(
@@ -684,6 +723,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     native_test_run(
@@ -753,6 +794,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     native_test_run(
@@ -822,6 +865,8 @@ def native_crates():
     ],
         clippy_configuration = ":clippy-configuration",
         default_target_platform = "prelude//platforms:default",
+        incremental_enabled = incremental,
+        use_content_based_paths = not incremental,
         visibility = ["PUBLIC"],
     )
     native_test_run(
