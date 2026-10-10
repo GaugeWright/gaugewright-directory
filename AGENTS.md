@@ -8,7 +8,7 @@ retain account content is a defect regardless of what it enables.
 ## Build
 
 The platform crates are consumed through the `platform/` submodule, pinned to a
-known-good commit of the public GaugeDesk mirror:
+matching source commit in the private GaugeDesk trunk:
 
 ```sh
 git submodule update --init
