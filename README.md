@@ -21,8 +21,9 @@ fail-closed (`PUT /directory/:root` verifies against the record's *own*
 
 ## Building
 
-The open platform repo ([gaugedesk](https://github.com/GaugeWright/gaugedesk))
-is consumed as the `platform/` git submodule, pinned to a known-good commit;
+The private platform repo ([gaugedesk-src](https://github.com/GaugeWright/gaugedesk-src))
+is consumed as the `platform/` git submodule. It pins the source commit
+that the retired public mirror projected;
 this crate takes `path` dependencies into it (`platform/crates/*`) — the
 ADR 0069 SPLIT-7 transitional mechanism until the platform crates are
 published.
@@ -46,8 +47,8 @@ Docs build: `mkdocs build --strict` (output under `target/directory-docs-site`).
 
 ## Sibling repos
 
-- [gaugedesk](https://github.com/GaugeWright/gaugedesk)
-  — the open platform (workbench, control plane, crates this service builds on).
+- [gaugedesk-src](https://github.com/GaugeWright/gaugedesk-src)
+  — the private platform source (workbench, control plane, crates this service builds on).
 - `gaugewright-cloud` — the private managed-services band (hosted control
   plane, settlement, embed host, attestation/KMS).
 

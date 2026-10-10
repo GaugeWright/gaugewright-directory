@@ -24,14 +24,68 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-core",
-        srcs = glob([
-        "platform/crates/core/**"
-    ], exclude = [
-        "platform/crates/core/tests/**",
-        "platform/crates/core/examples/**",
-        "platform/crates/core/benches/**",
-        "platform/crates/core/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/core/Cargo.toml",
+        "platform/crates/core/proptest-regressions/envelope_supply.txt",
+        "platform/crates/core/proptest-regressions/taint.txt",
+        "platform/crates/core/src/abac.rs",
+        "platform/crates/core/src/agent_release.rs",
+        "platform/crates/core/src/agent_version.rs",
+        "platform/crates/core/src/attestation.rs",
+        "platform/crates/core/src/billing.rs",
+        "platform/crates/core/src/boundary.rs",
+        "platform/crates/core/src/boundary_lifecycle.rs",
+        "platform/crates/core/src/bridge_grant.rs",
+        "platform/crates/core/src/content_erasure.rs",
+        "platform/crates/core/src/delegation.rs",
+        "platform/crates/core/src/deployment_entitlement.rs",
+        "platform/crates/core/src/device_enrollment.rs",
+        "platform/crates/core/src/envelope_supply.rs",
+        "platform/crates/core/src/federated_delivery.rs",
+        "platform/crates/core/src/federated_envelope.rs",
+        "platform/crates/core/src/federation.rs",
+        "platform/crates/core/src/freshness.rs",
+        "platform/crates/core/src/handoff.rs",
+        "platform/crates/core/src/host_action_admission.rs",
+        "platform/crates/core/src/ids.rs",
+        "platform/crates/core/src/instance.rs",
+        "platform/crates/core/src/key_release.rs",
+        "platform/crates/core/src/lib.rs",
+        "platform/crates/core/src/managed_machine_execution.rs",
+        "platform/crates/core/src/merge.rs",
+        "platform/crates/core/src/mobile_machine_session.rs",
+        "platform/crates/core/src/mobile_wake.rs",
+        "platform/crates/core/src/model_connection.rs",
+        "platform/crates/core/src/model_connection/access.rs",
+        "platform/crates/core/src/model_connection/spend.rs",
+        "platform/crates/core/src/model_connection/tests.rs",
+        "platform/crates/core/src/model_connection/tests/spend.rs",
+        "platform/crates/core/src/package_distribution.rs",
+        "platform/crates/core/src/pinned_tls.rs",
+        "platform/crates/core/src/project_home_handoff.rs",
+        "platform/crates/core/src/project_home_handoff/tests.rs",
+        "platform/crates/core/src/project_host_export.rs",
+        "platform/crates/core/src/project_host_export/tests.rs",
+        "platform/crates/core/src/project_host_registration.rs",
+        "platform/crates/core/src/project_host_registration/tests.rs",
+        "platform/crates/core/src/protected_profile.rs",
+        "platform/crates/core/src/rbac.rs",
+        "platform/crates/core/src/recovery.rs",
+        "platform/crates/core/src/remote_call.rs",
+        "platform/crates/core/src/remote_session.rs",
+        "platform/crates/core/src/resource.rs",
+        "platform/crates/core/src/resource_access.rs",
+        "platform/crates/core/src/resource_export.rs",
+        "platform/crates/core/src/review.rs",
+        "platform/crates/core/src/revocation.rs",
+        "platform/crates/core/src/run.rs",
+        "platform/crates/core/src/runtime_session.rs",
+        "platform/crates/core/src/signature.rs",
+        "platform/crates/core/src/taint.rs",
+        "platform/crates/core/src/target_settlement.rs",
+        "platform/crates/core/src/whip_pricing.rs",
+        "platform/crates/core/src/workstream.rs"
+    ] + [],
         crate = "gaugedesk_core",
         crate_root = "platform/crates/core/src/lib.rs",
         edition = "2021",
@@ -66,14 +120,10 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-directory-protocol",
-        srcs = glob([
-        "platform/crates/directory-protocol/**"
-    ], exclude = [
-        "platform/crates/directory-protocol/tests/**",
-        "platform/crates/directory-protocol/examples/**",
-        "platform/crates/directory-protocol/benches/**",
-        "platform/crates/directory-protocol/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/directory-protocol/Cargo.toml",
+        "platform/crates/directory-protocol/src/lib.rs"
+    ] + [],
         crate = "gaugedesk_directory_protocol",
         crate_root = "platform/crates/directory-protocol/src/lib.rs",
         edition = "2021",
@@ -108,14 +158,10 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-env",
-        srcs = glob([
-        "platform/crates/env/**"
-    ], exclude = [
-        "platform/crates/env/tests/**",
-        "platform/crates/env/examples/**",
-        "platform/crates/env/benches/**",
-        "platform/crates/env/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/env/Cargo.toml",
+        "platform/crates/env/src/lib.rs"
+    ] + [],
         crate = "gaugedesk_env",
         crate_root = "platform/crates/env/src/lib.rs",
         edition = "2021",
@@ -144,14 +190,18 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-store",
-        srcs = glob([
-        "platform/crates/store/**"
-    ], exclude = [
-        "platform/crates/store/tests/**",
-        "platform/crates/store/examples/**",
-        "platform/crates/store/benches/**",
-        "platform/crates/store/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/store/Cargo.toml",
+        "platform/crates/store/src/command_dispatch.rs",
+        "platform/crates/store/src/command_dispatch_record_tests.rs",
+        "platform/crates/store/src/command_dispatch_retained_tests.rs",
+        "platform/crates/store/src/command_scope_archive.rs",
+        "platform/crates/store/src/command_scope_archive_tests.rs",
+        "platform/crates/store/src/lib.rs",
+        "platform/crates/store/src/record_admission.rs",
+        "platform/crates/store/src/record_claim_tests.rs",
+        "platform/crates/store/src/request_admission.rs"
+    ] + [],
         crate = "gaugedesk_store",
         crate_root = "platform/crates/store/src/lib.rs",
         edition = "2021",
@@ -270,14 +320,10 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-boundary--2dc936c0",
-        srcs = glob([
-        "platform/crates/boundary/**"
-    ], exclude = [
-        "platform/crates/boundary/tests/**",
-        "platform/crates/boundary/examples/**",
-        "platform/crates/boundary/benches/**",
-        "platform/crates/boundary/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/boundary/Cargo.toml",
+        "platform/crates/boundary/src/lib.rs"
+    ] + [],
         crate = "gaugedesk_boundary",
         crate_root = "platform/crates/boundary/src/lib.rs",
         edition = "2021",
@@ -310,14 +356,14 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-harness--485fa18b",
-        srcs = glob([
-        "platform/crates/harness/**"
-    ], exclude = [
-        "platform/crates/harness/tests/**",
-        "platform/crates/harness/examples/**",
-        "platform/crates/harness/benches/**",
-        "platform/crates/harness/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/harness/Cargo.toml",
+        "platform/crates/harness/src/egress_proxy.rs",
+        "platform/crates/harness/src/lib.rs",
+        "platform/crates/harness/src/sandbox.rs",
+        "platform/crates/harness/src/sni_proxy.rs",
+        "platform/crates/harness/src/testing.rs"
+    ] + [],
         crate = "gaugedesk_harness",
         crate_root = "platform/crates/harness/src/lib.rs",
         edition = "2021",
@@ -352,14 +398,17 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-relay-transport--bee270ff",
-        srcs = glob([
-        "platform/crates/relay-transport/**"
-    ], exclude = [
-        "platform/crates/relay-transport/tests/**",
-        "platform/crates/relay-transport/examples/**",
-        "platform/crates/relay-transport/benches/**",
-        "platform/crates/relay-transport/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/relay-transport/Cargo.toml",
+        "platform/crates/relay-transport/src/browser.rs",
+        "platform/crates/relay-transport/src/http_stream.rs",
+        "platform/crates/relay-transport/src/lib.rs",
+        "platform/crates/relay-transport/src/native.rs",
+        "platform/crates/relay-transport/src/session.rs",
+        "platform/crates/relay-transport/src/test_relay.rs",
+        "platform/crates/relay-transport/src/tunnel_client.rs",
+        "platform/crates/relay-transport/src/wire.rs"
+    ] + [],
         crate = "gaugedesk_relay_transport",
         crate_root = "platform/crates/relay-transport/src/lib.rs",
         edition = "2021",
@@ -402,14 +451,10 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-tracker--222fae4e",
-        srcs = glob([
-        "platform/crates/tracker/**"
-    ], exclude = [
-        "platform/crates/tracker/tests/**",
-        "platform/crates/tracker/examples/**",
-        "platform/crates/tracker/benches/**",
-        "platform/crates/tracker/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/tracker/Cargo.toml",
+        "platform/crates/tracker/src/lib.rs"
+    ] + [],
         crate = "gaugedesk_tracker",
         crate_root = "platform/crates/tracker/src/lib.rs",
         edition = "2021",
@@ -442,14 +487,15 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-whip-runtime--0b7b7083",
-        srcs = glob([
-        "platform/crates/whip-runtime/**"
-    ], exclude = [
-        "platform/crates/whip-runtime/tests/**",
-        "platform/crates/whip-runtime/examples/**",
-        "platform/crates/whip-runtime/benches/**",
-        "platform/crates/whip-runtime/target/**"
-    ]) + [
+        srcs = [
+        "platform/crates/whip-runtime/Cargo.toml",
+        "platform/crates/whip-runtime/src/gate_files.rs",
+        "platform/crates/whip-runtime/src/gate_runner.rs",
+        "platform/crates/whip-runtime/src/host_actions.rs",
+        "platform/crates/whip-runtime/src/hosted.rs",
+        "platform/crates/whip-runtime/src/lib.rs",
+        "platform/crates/whip-runtime/src/whip_stats.rs"
+    ] + [
         "platform/contracts/model-token-rates.json"
     ],
         crate = "gaugedesk_whip_runtime",
@@ -495,14 +541,19 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-workspace--51c41ba7",
-        srcs = glob([
-        "platform/crates/workspace/**"
-    ], exclude = [
-        "platform/crates/workspace/tests/**",
-        "platform/crates/workspace/examples/**",
-        "platform/crates/workspace/benches/**",
-        "platform/crates/workspace/target/**"
-    ]) + [],
+        srcs = [
+        "platform/crates/workspace/Cargo.toml",
+        "platform/crates/workspace/src/action_target.rs",
+        "platform/crates/workspace/src/external.rs",
+        "platform/crates/workspace/src/import_receipt.rs",
+        "platform/crates/workspace/src/lib.rs",
+        "platform/crates/workspace/src/reopen_tests.rs",
+        "platform/crates/workspace/src/resolution_recording_target.rs",
+        "platform/crates/workspace/src/resolution_recording_target_tests.rs",
+        "platform/crates/workspace/src/snapshot.rs",
+        "platform/crates/workspace/src/workflow_source.rs",
+        "platform/crates/workspace/src/workflow_storage.rs"
+    ] + [],
         crate = "gaugedesk_workspace",
         crate_root = "platform/crates/workspace/src/lib.rs",
         edition = "2021",
@@ -540,14 +591,235 @@ def native_crates():
     )
     cargo.rust_library(
         name = "rust-gaugedesk-app--aff713e2",
-        srcs = glob([
-        "platform/crates/app/**"
-    ], exclude = [
-        "platform/crates/app/tests/**",
-        "platform/crates/app/examples/**",
-        "platform/crates/app/benches/**",
-        "platform/crates/app/target/**"
-    ]) + [
+        srcs = [
+        "platform/crates/app/Cargo.toml",
+        "platform/crates/app/packages/gaugewright.json",
+        "platform/crates/app/src/account.rs",
+        "platform/crates/app/src/account_auth.rs",
+        "platform/crates/app/src/account_auth_ceremony.rs",
+        "platform/crates/app/src/account_auth_custody.rs",
+        "platform/crates/app/src/account_avatar.rs",
+        "platform/crates/app/src/account_routes.rs",
+        "platform/crates/app/src/account_session.rs",
+        "platform/crates/app/src/account_signin.rs",
+        "platform/crates/app/src/action_input_binding.rs",
+        "platform/crates/app/src/action_input_binding_tests.rs",
+        "platform/crates/app/src/action_inputs.rs",
+        "platform/crates/app/src/action_policy.rs",
+        "platform/crates/app/src/advancement.rs",
+        "platform/crates/app/src/agent_question.rs",
+        "platform/crates/app/src/agent_release.rs",
+        "platform/crates/app/src/app_support.rs",
+        "platform/crates/app/src/at_rest.rs",
+        "platform/crates/app/src/attention.rs",
+        "platform/crates/app/src/attestation_verifier.rs",
+        "platform/crates/app/src/audit.rs",
+        "platform/crates/app/src/auth_oidc.rs",
+        "platform/crates/app/src/backup_keyring.rs",
+        "platform/crates/app/src/bin/gaugedesk-agent-release.rs",
+        "platform/crates/app/src/bin/gaugedesk-home-relay.rs",
+        "platform/crates/app/src/boundary_keeper.rs",
+        "platform/crates/app/src/challenge.rs",
+        "platform/crates/app/src/client_admission.rs",
+        "platform/crates/app/src/codex_oauth.rs",
+        "platform/crates/app/src/collection_recipient.rs",
+        "platform/crates/app/src/command_idempotency.rs",
+        "platform/crates/app/src/console_routes.rs",
+        "platform/crates/app/src/content_vault.rs",
+        "platform/crates/app/src/content_vault/ledger_tests.rs",
+        "platform/crates/app/src/content_vault/scope_key.rs",
+        "platform/crates/app/src/content_vault/scope_key/tests.rs",
+        "platform/crates/app/src/content_vault/scope_key/transfer.rs",
+        "platform/crates/app/src/content_vault/scope_key/transfer/tests.rs",
+        "platform/crates/app/src/crypto_erasure.rs",
+        "platform/crates/app/src/deployment_pricing.rs",
+        "platform/crates/app/src/desktop_session.rs",
+        "platform/crates/app/src/desktop_session_tests.rs",
+        "platform/crates/app/src/device_enroll.rs",
+        "platform/crates/app/src/device_enroll_drive.rs",
+        "platform/crates/app/src/directory_sync.rs",
+        "platform/crates/app/src/discipline.rs",
+        "platform/crates/app/src/engagement_routes.rs",
+        "platform/crates/app/src/engine.rs",
+        "platform/crates/app/src/envelope_composition.rs",
+        "platform/crates/app/src/envelope_supply.rs",
+        "platform/crates/app/src/facility.rs",
+        "platform/crates/app/src/facility_routes.rs",
+        "platform/crates/app/src/federation.rs",
+        "platform/crates/app/src/federation_handoff_consent_tests.rs",
+        "platform/crates/app/src/federation_incoming_handoff.rs",
+        "platform/crates/app/src/federation_incoming_handoff_tests.rs",
+        "platform/crates/app/src/federation_relay.rs",
+        "platform/crates/app/src/federation_relocation_content_tests.rs",
+        "platform/crates/app/src/federation_workflow_keys.rs",
+        "platform/crates/app/src/file_action_content.rs",
+        "platform/crates/app/src/file_action_content_tests.rs",
+        "platform/crates/app/src/file_action_delivery.rs",
+        "platform/crates/app/src/file_action_derived_delivery_tests.rs",
+        "platform/crates/app/src/file_action_derived_source.rs",
+        "platform/crates/app/src/file_action_derived_source_tests.rs",
+        "platform/crates/app/src/file_action_dispatch_evidence_tests.rs",
+        "platform/crates/app/src/file_action_dispatch_grant.rs",
+        "platform/crates/app/src/file_action_dispatch_grant_tests.rs",
+        "platform/crates/app/src/file_action_driver.rs",
+        "platform/crates/app/src/file_action_driver_tests.rs",
+        "platform/crates/app/src/file_action_execution.rs",
+        "platform/crates/app/src/file_action_execution_inspection_tests.rs",
+        "platform/crates/app/src/file_action_factory.rs",
+        "platform/crates/app/src/file_action_factory_tests.rs",
+        "platform/crates/app/src/file_action_inspection.rs",
+        "platform/crates/app/src/file_action_inspection_tests.rs",
+        "platform/crates/app/src/file_action_ownership.rs",
+        "platform/crates/app/src/file_action_policy.rs",
+        "platform/crates/app/src/file_action_product_result_inspection.rs",
+        "platform/crates/app/src/file_action_product_result_inspection_tests.rs",
+        "platform/crates/app/src/file_action_recovery.rs",
+        "platform/crates/app/src/file_action_request_inspection.rs",
+        "platform/crates/app/src/file_action_request_inspection_tests.rs",
+        "platform/crates/app/src/file_action_request_preparation.rs",
+        "platform/crates/app/src/file_action_request_preparation_tests.rs",
+        "platform/crates/app/src/file_action_resolution_scope.rs",
+        "platform/crates/app/src/file_action_result_admission.rs",
+        "platform/crates/app/src/file_action_result_admission_tests.rs",
+        "platform/crates/app/src/file_action_route_tests.rs",
+        "platform/crates/app/src/file_action_routes.rs",
+        "platform/crates/app/src/file_action_source.rs",
+        "platform/crates/app/src/file_action_source_tests.rs",
+        "platform/crates/app/src/file_action_storage.rs",
+        "platform/crates/app/src/file_action_storage_tests.rs",
+        "platform/crates/app/src/file_action_submission_route_tests.rs",
+        "platform/crates/app/src/file_action_submission_routes.rs",
+        "platform/crates/app/src/file_action_supervisor.rs",
+        "platform/crates/app/src/file_action_supervisor_tests.rs",
+        "platform/crates/app/src/file_action_version_authority.rs",
+        "platform/crates/app/src/first_home.rs",
+        "platform/crates/app/src/gate.rs",
+        "platform/crates/app/src/gate_service.rs",
+        "platform/crates/app/src/gaugeapp_agent.rs",
+        "platform/crates/app/src/gaugeapp_contract.rs",
+        "platform/crates/app/src/harness_select.rs",
+        "platform/crates/app/src/home.rs",
+        "platform/crates/app/src/home_admission.rs",
+        "platform/crates/app/src/home_backup.rs",
+        "platform/crates/app/src/home_invitation.rs",
+        "platform/crates/app/src/home_owner.rs",
+        "platform/crates/app/src/home_owner_tests.rs",
+        "platform/crates/app/src/home_reachability.rs",
+        "platform/crates/app/src/home_routes.rs",
+        "platform/crates/app/src/host_action_admission_tests.rs",
+        "platform/crates/app/src/host_action_delivery.rs",
+        "platform/crates/app/src/identity.rs",
+        "platform/crates/app/src/identity_oidc.rs",
+        "platform/crates/app/src/key_store.rs",
+        "platform/crates/app/src/lib.rs",
+        "platform/crates/app/src/library.rs",
+        "platform/crates/app/src/library_routes.rs",
+        "platform/crates/app/src/library_state.rs",
+        "platform/crates/app/src/lifecycle_routes.rs",
+        "platform/crates/app/src/local_model_broker.rs",
+        "platform/crates/app/src/local_routes.rs",
+        "platform/crates/app/src/main.rs",
+        "platform/crates/app/src/managed_entitlement.rs",
+        "platform/crates/app/src/managed_funding.rs",
+        "platform/crates/app/src/managed_funding_tests.rs",
+        "platform/crates/app/src/managed_inference.rs",
+        "platform/crates/app/src/measurement_store.rs",
+        "platform/crates/app/src/mobile_bridge.rs",
+        "platform/crates/app/src/mobile_machine_session.rs",
+        "platform/crates/app/src/model_provider_management.rs",
+        "platform/crates/app/src/model_provider_management/projection.rs",
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
+        "platform/crates/app/src/model_provider_management/projection/tests.rs",
+        "platform/crates/app/src/model_provider_management/tests.rs",
+        "platform/crates/app/src/native_save_qualification.rs",
+        "platform/crates/app/src/net_http.rs",
+        "platform/crates/app/src/net_relay.rs",
+        "platform/crates/app/src/net_server.rs",
+        "platform/crates/app/src/net_tls.rs",
+        "platform/crates/app/src/official_skills.rs",
+        "platform/crates/app/src/onboarding.rs",
+        "platform/crates/app/src/open_api.rs",
+        "platform/crates/app/src/open_route_stack.rs",
+        "platform/crates/app/src/open_runtime.rs",
+        "platform/crates/app/src/org.rs",
+        "platform/crates/app/src/package_flow.rs",
+        "platform/crates/app/src/package_store.rs",
+        "platform/crates/app/src/policy_compiler.rs",
+        "platform/crates/app/src/possession_exchange.rs",
+        "platform/crates/app/src/possession_exchange_tests.rs",
+        "platform/crates/app/src/project_credential_routes.rs",
+        "platform/crates/app/src/project_model_selection.rs",
+        "platform/crates/app/src/project_tracker.rs",
+        "platform/crates/app/src/project_tracker_completion.rs",
+        "platform/crates/app/src/project_tracker_completion_execution.rs",
+        "platform/crates/app/src/project_tracker_completion_tests.rs",
+        "platform/crates/app/src/project_tracker_query.rs",
+        "platform/crates/app/src/project_tracker_query_tests.rs",
+        "platform/crates/app/src/project_tracker_route_tests.rs",
+        "platform/crates/app/src/project_tracker_routes.rs",
+        "platform/crates/app/src/project_tracker_tests.rs",
+        "platform/crates/app/src/project_workflow.rs",
+        "platform/crates/app/src/project_workflow_authority.rs",
+        "platform/crates/app/src/project_workflow_delivery.rs",
+        "platform/crates/app/src/project_workflow_execution.rs",
+        "platform/crates/app/src/project_workflow_execution_tests.rs",
+        "platform/crates/app/src/project_workflow_launch.rs",
+        "platform/crates/app/src/project_workflow_preparation.rs",
+        "platform/crates/app/src/project_workflow_recovery.rs",
+        "platform/crates/app/src/project_workflow_route_tests.rs",
+        "platform/crates/app/src/project_workflow_routes.rs",
+        "platform/crates/app/src/project_workflow_supervisor.rs",
+        "platform/crates/app/src/project_workflow_supervisor_tests.rs",
+        "platform/crates/app/src/project_workflow_tests.rs",
+        "platform/crates/app/src/protected_profiles.rs",
+        "platform/crates/app/src/publisher_routes.rs",
+        "platform/crates/app/src/quarantine.rs",
+        "platform/crates/app/src/remote_runtime.rs",
+        "platform/crates/app/src/resolution_recording_delivery.rs",
+        "platform/crates/app/src/resolution_recording_delivery_tests.rs",
+        "platform/crates/app/src/resolution_recording_execution.rs",
+        "platform/crates/app/src/resolution_recording_execution_tests.rs",
+        "platform/crates/app/src/resolution_recording_factory.rs",
+        "platform/crates/app/src/resolution_recording_factory_tests.rs",
+        "platform/crates/app/src/resolution_recording_inspection.rs",
+        "platform/crates/app/src/resolution_recording_inspection_binding.rs",
+        "platform/crates/app/src/resolution_recording_inspection_policy.rs",
+        "platform/crates/app/src/resolution_recording_inspection_policy_tests.rs",
+        "platform/crates/app/src/resolution_recording_inspection_tests.rs",
+        "platform/crates/app/src/resolution_recording_policy.rs",
+        "platform/crates/app/src/resolution_recording_reconciliation.rs",
+        "platform/crates/app/src/resolution_recording_reconciliation_delivery.rs",
+        "platform/crates/app/src/resolution_recording_reconciliation_delivery_tests.rs",
+        "platform/crates/app/src/resolution_recording_reconciliation_tests.rs",
+        "platform/crates/app/src/resolution_recording_result.rs",
+        "platform/crates/app/src/resolution_recording_result_tests.rs",
+        "platform/crates/app/src/resource_store.rs",
+        "platform/crates/app/src/roster.rs",
+        "platform/crates/app/src/secret.rs",
+        "platform/crates/app/src/session.rs",
+        "platform/crates/app/src/session_activity.rs",
+        "platform/crates/app/src/shipped_tutorials.rs",
+        "platform/crates/app/src/shipped_tutorials_tests.rs",
+        "platform/crates/app/src/stream.rs",
+        "platform/crates/app/src/target_adapter.rs",
+        "platform/crates/app/src/target_change_set.rs",
+        "platform/crates/app/src/target_settlement.rs",
+        "platform/crates/app/src/tenancy.rs",
+        "platform/crates/app/src/test_support.rs",
+        "platform/crates/app/src/tests.rs",
+        "platform/crates/app/src/throttle.rs",
+        "platform/crates/app/src/tokenwright.rs",
+        "platform/crates/app/src/turn_summary.rs",
+        "platform/crates/app/src/tutorials/basics.whip",
+        "platform/crates/app/src/whip_costs.rs",
+        "platform/crates/app/src/whip_views.rs",
+        "platform/crates/app/src/workbench_auth.rs",
+        "platform/crates/app/src/workbench_state.rs",
+        "platform/crates/app/src/workstream_host_contract.rs",
+        "platform/crates/app/src/workstream_promotion.rs",
+        "platform/crates/app/src/workstream_routes.rs",
+        "platform/crates/app/src/xai_oauth.rs"
+    ] + [
         "platform/sidecar/codex-oauth-login.mjs"
     ],
         crate = "gaugedesk_app",
@@ -675,13 +947,14 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
-        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
         "**/target/**",
         "**/node_modules/**"
-    ]),
+    ]) + [
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json"
+    ],
         cell = "gaugewright-directory",
         crate_dir = ".",
         fixed_root = "/mnt/gaugewright-native",
@@ -742,13 +1015,14 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
-        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
         "**/target/**",
         "**/node_modules/**"
-    ]),
+    ]) + [
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json"
+    ],
         cell = "gaugewright-directory",
         crate_dir = ".",
         fixed_root = "/mnt/gaugewright-native",
@@ -813,13 +1087,14 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
-        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
         "**/target/**",
         "**/node_modules/**"
-    ]),
+    ]) + [
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json"
+    ],
         cell = "gaugewright-directory",
         crate_dir = ".",
         fixed_root = "/mnt/gaugewright-native",
@@ -884,13 +1159,14 @@ def native_crates():
         artifacts = {},
         data = glob([
         "Cargo.toml",
-        "platform/crates/app/src/model_provider_management/projection/page.fixture.json",
         "src/**",
         "tests/**"
     ], exclude = [
         "**/target/**",
         "**/node_modules/**"
-    ]),
+    ]) + [
+        "platform/crates/app/src/model_provider_management/projection/page.fixture.json"
+    ],
         cell = "gaugewright-directory",
         crate_dir = ".",
         fixed_root = "/mnt/gaugewright-native",
