@@ -50,7 +50,10 @@ esac
 # a `check_world` target, which refuses to run unless the invocation names the
 # run, so it cannot be answered from a cache by accident.
 via_buck2=""
-if [ -z "${GREEN_BAR_INSIDE_BUCK2:-}" ] && command -v buck2 >/dev/null 2>&1 \
+# The private source submodule carries its own BUCK file. Buck2 makes that a
+# separate package, so this repository's native targets cannot name its files
+# as local sources. Run the same section commands directly for that pin.
+if [ ! -f platform/BUCK ] && [ -z "${GREEN_BAR_INSIDE_BUCK2:-}" ] && command -v buck2 >/dev/null 2>&1 \
    && buck2 audit cell 2>/dev/null | grep -qx "gaugewright-directory: $(pwd -P)"; then
   via_buck2=1
 fi
